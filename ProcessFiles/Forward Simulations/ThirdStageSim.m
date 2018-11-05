@@ -1,5 +1,6 @@
 function [AltF_actual, vF, Alt, v, t, mpayload, Alpha, m,q,gamma,D,zeta,phi, inc,T,CL,L,inc_diff,xi,dvtot,m4,vexo,hs] = ThirdStageSim(alt0,gamma0,v0, phi0, xi0, zeta0, m0, auxdata)
-% Function for simulating the Third Stage Rocket Trajectory
+% Function for simulating the unpowered segment of the Third Stage Rocket Trajectory
+% as well as Hohmann Transfer
 % Created by Sholto Forbes-Spyratos
 
 % Atmosphere = auxdata.Atmosphere;
@@ -155,11 +156,9 @@ dvtot = v12 + v23 + v34;
 
 inc = acos((v(end)*cos(zeta(end)) + r(end)*Omega_E*cos(phi(end)))/vexo);  % initial orbit inclination angle
 
-if auxdata.mode == 0
-inc_diff = -acos(-((566.89+6371)/12352)^(7/2))-inc*zeta(end)/abs(zeta(end));
-else
-inc_diff = acos(-((566.89+6371)/12352)^(7/2))-inc;
-end
+
+inc_diff = auxdata.Mission.FinalInc-inc;
+
 
 %as this is happening in a vacuum we can compute whole delta v at once for
 %fuel usage, tsiolkovsky rocket equation. 

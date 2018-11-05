@@ -185,7 +185,7 @@ nodes = length(alt21)
 
 [altdot21,xidot21,phidot21,gammadot21,a21,zetadot21, q21, M21, Fd21, rho21,L21,Fueldt21,T21,Isp21,q121,flapdeflection21,heating_rate21,CG21,T1,P1,M1,P021] = SPARTANDynamics(gamma21, alt21, v21,auxdata,zeta21,lat21,lon21,alpha21,eta21,1, mFuel21,mFuel21(1),mFuel21(end), 1, 0);
 q121
-[~,~,~,~,~,~, q22, M22, Fd22, rho22,L22,Fueldt22,T22,Isp22,q122,flapdeflection22,heating_rate22,CG22,T122,P122,M122,P022] = SPARTANDynamics(gamma22, alt22, v22,auxdata,zeta22,lat22,lon22,alpha22,eta22,throttle22, mFuel22,0,0, 0, 0);
+[~,~,~,~,~,~, q22, M22, Fd22, rho22,L22,Fueldt22,T22,Isp22,q122,flapdeflection22,heating_rate22,CG22,T122,P122,M122,P022,Fueldt_max] = SPARTANDynamics(gamma22, alt22, v22,auxdata,zeta22,lat22,lon22,alpha22,eta22,throttle22, mFuel22,0,0, 0, 0);
 
 %% Modify throttle for return 
 
@@ -193,6 +193,11 @@ q121
 throttle22(M22<5.0) = throttle22(M22<5.0).*gaussmf(M22(M22<5.0),[.01,5]); % remove nonsense throttle points
 throttle22(q122<20000) = throttle22(q122<20000).*gaussmf(q122(q122<20000),[100,20000]); % rapidly reduce throttle to 0 after passing the lower limit of 20kPa dynamic pressure. This dynamic pressure is after the conical shock.
     
+
+T22_act = T22 + auxdata.T_spline_Rear(M22,rad2deg(alpha22),alt22/1000).*throttle22;
+
+Isp22 = Isp22 + auxdata.T_spline_Rear(M22,rad2deg(alpha22),alt22/1000)./Fueldt_max/9.81; % add extra Isp for boat tail and extra expansion area thrust
+
 Isp22(M22<5.0) = Isp22(M22<5.0).*gaussmf(M22(M22<5.0),[.01,5]); %
 Isp22(q122<20000) = Isp22(q122<20000).*gaussmf(M22(q122<20000),[.1,5]); %
 
@@ -346,8 +351,10 @@ ylabel('Trajectory Angle (deg)');
 addaxis(time21-time21(1),rad2deg(zeta21),'--','color','k', 'linewidth', 1.);
 addaxislabel(2,'Heading Angle (deg)');
 
+L21_act = L21 - auxdata.L_spline_Rear(M21,rad2deg(alpha21),alt21/1000); % actual lift and drag without boat tail
+Fd21_act = Fd21 - auxdata.T_spline_Rear(M21,rad2deg(alpha21),alt21/1000);
 
-LD21 = (L21 - auxdata.L_spline_Rear(M21,rad2deg(alpha21),alt21/1000)*auxdata.A.*q21)./(Fd21 - auxdata.T_spline_Rear(M21,rad2deg(alpha21),alt21/1000)*auxdata.A.*q21);
+LD21 = (L21_act*auxdata.A.*q21)./(Fd21_act*auxdata.A.*q21);
 
 addaxis(time21-time21(1),LD21,':','color','k', 'linewidth', 1.2);
 addaxislabel(3,'L/D');
@@ -380,8 +387,11 @@ else
  legend(  'Angle of Attack', 'Centre of Gravity', 'Flap Deflection', 'location', 'best');
 end
 
+T21_act = T21 + auxdata.T_spline_Rear(M21,rad2deg(alpha21),alt21/1000);
+
+
 subplot(4,1,4)
-Isp21 = T21./Fueldt21./9.81;
+Isp21 = T21_act./Fueldt21./9.81;
 IspNet21 = (T21-Fd21)./Fueldt21./9.81;
 xlim([0 time21(end)-time21(1)]);
 hold on
@@ -391,7 +401,8 @@ hold on
 ylabel('Net Isp (s)');
 xlabel('Time (s)');
 
-addaxis(time21-time21(1),T21/1000,'--','color','k', 'linewidth', 1.);
+
+addaxis(time21-time21(1),T21_act/1000,'--','color','k', 'linewidth', 1.);
 addaxislabel(2,'Thrust (kN)');
 
 addaxis(time21-time21(1),mFuel21,':','color','k', 'linewidth', 1.);
@@ -438,7 +449,10 @@ ylabel('Trajectory Angle (deg)');
 addaxis(time22-time22(1),rad2deg(zeta22),'--','color','k', 'linewidth', 1.);
 addaxislabel(2,'Heading Angle (deg)');
 
-LD22 = (L22 - auxdata.L_spline_Rear(M22,rad2deg(alpha22),alt22/1000)*auxdata.A.*q22.*throttle22)./(Fd22 - auxdata.T_spline_Rear(M22,rad2deg(alpha22),alt22/1000)*auxdata.A.*q22.*throttle22);
+L22_act = L22 - auxdata.L_spline_Rear(M22,rad2deg(alpha22),alt22/1000); % actual lift and dragwithout boat tail
+Fd22_act = Fd22 - auxdata.T_spline_Rear(M22,rad2deg(alpha22),alt22/1000);
+
+LD22 = (L22_act*auxdata.A.*q22.*throttle22)./(Fd22_act *auxdata.A.*q22.*throttle22);
 
 addaxis(time22-time22(1),LD22,':','color','k', 'linewidth', 1.2);
 addaxislabel(3,'L/D');
@@ -472,7 +486,8 @@ hold on
 ylabel('Potential Isp (s)');
 xlabel('Time (s)');
 
-addaxis(time22-time22(1),T22/1000,'--','color','k', 'linewidth', 1.);
+
+addaxis(time22-time22(1),T22_act/1000,'--','color','k', 'linewidth', 1.);
 addaxislabel(2,'Thrust (kN)');
 
 addaxis(time22-time22(1),throttle22,':','color','k', 'linewidth', 1.);
@@ -484,8 +499,8 @@ legend(  'Net Isp', 'Thrust', 'Throttle', 'location', 'best');
 
 ThirdStageFlag = [ones(length(time21),1); zeros(length(time22),1)];
 
-SecondStageStates = [[time21; time22] [alt21; alt22] [M21;M22] [lon21; lon22] [lat21; lat22] [v21; v22] [gamma21; gamma22] [zeta21; zeta22] [alpha21; alpha22] [eta21; eta22] [mFuel21; mFuel22] [flapdeflection21; flapdeflection22] ThirdStageFlag];
-dlmwrite(strcat('SecondStageStates',namelist{j}),['time (s) ' 'altitude (m) ' 'Mach ' 'longitude (rad) ' 'latitude (rad) ' 'velocity (m/s) ' 'trajectory angle (rad) ' 'heading angle (rad) ' 'angle of attack (rad) ' 'bank angle (rad) ' 'fuel mass (kg) ' 'Flap Deflection (deg)' 'Third Stage (flag)'],'');
+SecondStageStates = [[time21; time22] [alt21; alt22] [M21;M22] [lon21; lon22] [lat21; lat22] [v21; v22] [gamma21; gamma22] [zeta21; zeta22] [alpha21; alpha22] [eta21; eta22] [mFuel21; mFuel22] [flapdeflection21; flapdeflection22] [L21_act; L22_act]/1000 [Fd21_act; Fd22_act]/1000 [T21_act; T22_act]/1000 [Isp21; Isp22] ThirdStageFlag];
+dlmwrite(strcat('SecondStageStates',namelist{j}),['time (s) ' 'altitude (m) ' 'Mach ' 'longitude (rad) ' 'latitude (rad) ' 'velocity (m/s) ' 'trajectory angle (rad) ' 'heading angle (rad) ' 'angle of attack (rad) ' 'bank angle (rad) ' 'fuel mass (kg) ' 'Flap Deflection (deg) ' 'Lift (kN) ' 'Drag (kN) ' 'Thrust (kN) ' 'Isp (s) ' 'Third Stage (flag)'],'');
 dlmwrite(strcat('SecondStageStates',namelist{j}),SecondStageStates,'-append','delimiter',' ');
 movefile(strcat('SecondStageStates',namelist{j}),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 

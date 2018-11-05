@@ -36,13 +36,20 @@ clc
 
 % mode 0: Alternate launch location
 
-mode = 9
+mode = 1
 auxdata.mode = mode;
 
 returnMode = 1% Flag for setting the return of the SPARTAN. 0 = not constrained (no return), 1 = constrained (return)
 auxdata.returnMode = returnMode;
 
 
+%% Import Vehicle and trajectory Config Data %%============================
+
+run Config.m
+
+auxdata.Mission = Mission;
+auxdata.Stage3 = Stage3;
+auxdata.Stage2 = Stage2;
 
 
 %%
@@ -213,19 +220,10 @@ auxdata.delta = deg2rad(0); % thrust vector angle
 
 
 %% Launch Point
-% lat0 = deg2rad(-12.4466); % Equatorial Launch Australia Spaceport near Nhulunbuy
-% lon0 = deg2rad(136.845);
 
-if mode == 0
-% lat0 = deg2rad(-38.4314); % Southern Launch Australia, assumed launch from Cape Nelson
-% lon0 = deg2rad(141.5420);
-lat0 = deg2rad(-32.9106); % Southern Launch Australia, assumed launch from Streaky Bay
-lon0 = deg2rad(134.0724);
-%streaky bay council report with support for launch site: https://www.streakybay.sa.gov.au/webdata/resources/minutesAgendas/Council%20Agenda-Report%20-%20October%202017.pdf
-else
-lat0 = deg2rad(-12.4466); % Equatorial Launch Australia Spaceport near Nhulunbuy
-lon0 = deg2rad(136.845);
-end
+lat0 = Mission.lat0; % Equatorial Launch Australia Spaceport near Nhulunbuy
+lon0 = Mission.lon0;
+
 
 
 %% Add Necessary Paths
@@ -315,81 +313,72 @@ mF = mEmpty+mSpartan;  %Assume that we use all of the fuel
 
 alpha0 = 0; %Set initial angle of attack to 0
 
-hMin1 = 1;   %Cannot go through the earth
-hMax1 = 30000;  
+% Altitude bounds (m)
+AltMin1 = 1;   %Cannot go through the earth
+AltMax1 = 40000;  % maximum first stage altitude
 
+% Velocity bounds (m/s)
 vMin1 = 0; 
-vMax1 = 3000;  
+vMax1 = 3000;  % Maximum first stage velocity, should be considerably higher than max possible
 
+% Mass bounds (kg)
 mMin1 = mEmpty;
 mMax1 = mTotal;
 
-if mode == 0
-phiMin1 = -1.5;
-phiMax1 = -0.5;
-else
-phiMin1 = -0.5;
-phiMax1 = 0.5;
-end
-% phiMin1 = -0.5;
-% phiMax1 = 0.5;
+% Latitude bounds (rad)  (for all stages)
+latMin = lat0-1; 
+latMax = lat0+1;
 
-% zetaMin1 = -2*pi;
-% zetaMax1 = 2*pi;
+% Heading angle bounds (rad)  (for all stages)
+zetaMin = -3*pi;
+zetaMax = 3*pi;
 
-if mode == 0
-zetaMin1 = -2*pi;
-zetaMax1 = -pi/2; % constrained to launch over sea, to the west   
-else
-zetaMin1 = -2*pi;
-zetaMax1 = 2*pi;
-end
-
+% Angle of attack bounds (rad)
 alphaMin1 = -deg2rad(5);
-% alphaMax1 = deg2rad(2);
 alphaMax1 = deg2rad(0);
 
+% Angle of attack change rate bounds (rad)
 dalphadt2Min1 = -0.1;
 dalphadt2Max1 = 0.1;
 
-lonMin = 2;         lonMax = 3;
+% Longitude bounds (for all stages)
+lonMin =  lon0-1;         lonMax = lon0+1;
 
+% Trajectory angle limits
 gammaMin1 = deg2rad(-.1);
 gammaMax1 = gamma0;
+
 % This sets the control limits, this is second derivative of AoA
-uMin1 = [-.0005]; % Can do either AoA or thrust
+uMin1 = [-.0005]; 
 uMax1 = [.0005];
 
-%-------------------------------------------
-% Set up the problem bounds in SCALED units
-%-------------------------------------------
-
+% time bound
 tfMax1 	    = 300;     % large upper bound; do not choose Inf
 		 
 %-------------------------------------------------------------------------%
 %---------- Provide Bounds and Guess in Each Phase of Problem ------------%
 %-------------------------------------------------------------------------%
 
-bounds.phase(1).initialtime.lower = 0;
+bounds.phase(1).initialtime.lower = 0; % constrain initial time to 0
 bounds.phase(1).initialtime.upper = 0;
 
 bounds.phase(1).finaltime.lower = 0;
 bounds.phase(1).finaltime.upper = tfMax1;
 
-bounds.phase(1).initialstate.lower = [h0, v0,  mF-1, gamma0, alpha0,  zetaMin1, dalphadt2Min1, lat0, lon0 ];
-bounds.phase(1).initialstate.upper = [h0, v0, mMax1, gamma0, alpha0, zetaMax1, dalphadt2Max1, lat0, lon0];
+bounds.phase(1).initialstate.lower = [h0, v0,  mF-1, gamma0, alpha0,  zetaMin, dalphadt2Min1, lat0, lon0 ];
+bounds.phase(1).initialstate.upper = [h0, v0, mMax1, gamma0, alpha0, zetaMax, dalphadt2Max1, lat0, lon0];
 
-bounds.phase(1).state.lower = [hMin1, vMin1, mF-1, gammaMin1, alphaMin1, zetaMin1, dalphadt2Min1, phiMin1, lonMin ];
-bounds.phase(1).state.upper = [ hMax1,  vMax1, mMax1, gammaMax1, alphaMax1, zetaMax1, dalphadt2Max1, phiMax1, lonMax];
+bounds.phase(1).state.lower = [AltMin1, vMin1, mF-1, gammaMin1, alphaMin1, zetaMin, dalphadt2Min1, latMin, lonMin ];
+bounds.phase(1).state.upper = [ AltMax1,  vMax1, mMax1, gammaMax1, alphaMax1, zetaMax, dalphadt2Max1, latMax, lonMax];
 
-bounds.phase(1).finalstate.lower = [hMin1, vMin1, mF-1, gammaMin1, alphaMin1, zetaMin1, dalphadt2Min1, phiMin1, lonMin ];
-bounds.phase(1).finalstate.upper = [ hMax1,  vMax1, mMax1, gammaMax1, alphaMax1, zetaMax1, dalphadt2Max1, phiMax1, lonMax];
+bounds.phase(1).finalstate.lower = [AltMin1, vMin1, mF-1, gammaMin1, alphaMin1, zetaMin, dalphadt2Min1, latMin, lonMin ];
+bounds.phase(1).finalstate.upper = [ AltMax1,  vMax1, mMax1, gammaMax1, alphaMax1, zetaMax, dalphadt2Max1, latMax, lonMax];
 
 bounds.phase(1).control.lower = uMin1;
 bounds.phase(1).control.upper = uMax1;
 
 bounds.phase(1).path.lower = 0;
-bounds.phase(1).path.upper = 50000;
+bounds.phase(1).path.upper = Stage2.maxq; % set maximum dynamic pressure 
 
 % Tie stages together
 bounds.eventgroup(1).lower = [zeros(1,8)];
@@ -430,17 +419,11 @@ auxdata.interp.p_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,3
 auxdata.interp.T0_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,2)); 
 auxdata.interp.P0_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,3)); 
 
-%% Import Vehicle and trajectory Config Data %%============================
 
-run VehicleConfig.m
-run TrajectoryConfig50kPa.m
-
-auxdata.Stage3 = Stage3;
-auxdata.Stage2 = Stage2;
 
 %%
 auxdata.Re   = 6371203.92;                     % Equatorial Radius of Earth (m)
-auxdata.A = 62.77; %m^2
+auxdata.A = Stage2.refA ; 
 
 %% Third Stage Aerodynamic Data
 
@@ -512,36 +495,7 @@ auxdata.interp.eqGridded = griddedInterpolant(grid.Mgrid_eng,grid.T_eng,grid.eq_
 
 %% Isp data %-----------------------------------------
 
-% gridIsp_eng is the spline interpolated data set created by
-% engineint.m and engineinterpolator.exe
-% 
-% load gridIsp_eng
-% grid.Isp_eng = gridIsp_eng;
-% 
-% % gridIsp_eng may have sections at which the Isp is 0. The following finds
-% % these, and fills them in with linearly intepolated values.
-% Isp_interpolator = scatteredInterpolant(engine_data(:,1),engine_data(:,2),engine_data(:,3));
-% auxdata.interp.Isp_interpolator = Isp_interpolator;
-% for i = 1:30 % must match engineint.m
-%     for j= 1:30
-%         % grid.Isp_eng(i,j) = polyvaln(p,[grid.Mgrid_eng(i,j) grid.T_eng(i,j)]);
-%         if any(grid.Isp_eng(i,j)) == false
-%             grid.Isp_eng(i,j) = Isp_interpolator(grid.Mgrid_eng(i,j), grid.T_eng(i,j)); % Linearly extrapolate for any data point which the Bivar spline could not solve
-%         end
-%     end
-% end
-% 
-% auxdata.interp.IspGridded = griddedInterpolant(grid.Mgrid_eng,grid.T_eng,grid.Isp_eng,'spline','spline');
-% auxdata.interp.IspGridded = griddedInterpolant(grid.Mgrid_eng,grid.T_eng,grid.Isp_eng,'linear','linear');
-
-
-% auxdata.interp.Isprbf=rbfcreate([engine_data(:,1)'; engine_data(:,2)'], engine_data(:,3)' ,'RBFFunction', 'gaussian','RBFSmooth', 1);
-
-% auxdata.interp.Isppoly = polyfitn([engine_data(:,1),engine_data(:,2)],engine_data(:,3),4);
-
-
 %% Interpolate for Isp
-% Note: no longer using Isp_grid, or files to generate that
 
 % The engine data set is arranged to as to be difficult to interpolate
 % effectively. Small imperfections in the interpolation scheme can have
@@ -704,16 +658,19 @@ end
 % contourf(grid.Mgrid_eng,grid.T_eng,Isp_grid,100)
 % Create spline for use in vehicle model.
 auxdata.interp.IspGridded = griddedInterpolant(grid.Mgrid_eng,grid.T_eng,Isp_grid,'spline','spline');
+
+
 %% Aerodynamic Data
 
 % Fetch aerodynamic data and compute interpolation splines.
 % Calculate the flap deflection necessary for trim.
 % Each set of aero corresponds to a different CG. 
 
-
-
 Viscousaero_EngineOn = importdata('VC3D_viscousCoefficients_ascent.dat');
 Viscousaero_EngineOff = importdata('VC3D_viscousCoefficients_descent.dat');
+
+MaxviscAlt21 = max(Viscousaero_EngineOn(:,3)); % set maximum altitude to the max provided by viscous database
+MaxviscAlt22 = max(Viscousaero_EngineOff(:,3));
 
 % These aerodynamic datasets have been created in ClicCalcCGVar.m
 
@@ -749,10 +706,7 @@ aero2.Viscousaero_EngineOn = Viscousaero_EngineOn;
 
 [auxdata.interp.Cl_spline_EngineOff.cylTankEnd,auxdata.interp.Cd_spline_EngineOff.cylTankEnd,auxdata.interp.Cl_spline_EngineOn.cylTankEnd,auxdata.interp.Cd_spline_EngineOn.cylTankEnd,auxdata.interp.flap_spline_EngineOff.cylTankEnd,auxdata.interp.flap_spline_EngineOn.cylTankEnd] = AeroInt(aero2,auxdata,T_L,CG_z);
 
-
-
 % Empty, with third stage. 
-
 
 CG_z = (-0.2134*4.9571e+03+ 3300*0.547)/(4.9571e+03+3300);
 
@@ -796,7 +750,6 @@ aero5.Viscousaero_EngineOn = Viscousaero_EngineOn;
     auxdata.interp.Cd_spline_EngineOn.noThirdStagecylTankEnd,auxdata.interp.flap_spline_EngineOff.noThirdStagecylTankEnd,...
     auxdata.interp.flap_spline_EngineOn.noThirdStagecylTankEnd] = AeroInt(aero5,auxdata,T_L,CG_z);
 
-
 clear aero1
 clear aero2
 clear aero3
@@ -805,103 +758,59 @@ clear aero5
 clear Viscousaero_EngineOn
 clear Viscousaero_EngineOff
 
-
 %% Import Bounds %%========================================================
-
-if mode == 0
-latMin2 = -1.5;  latMax2 = -0.5;
-else
-latMin2 = -0.5;  latMax2 = 0.5;
-end
-
-% latMin2 = -0.5;  latMax2 = 0.5;
-
 
 
 aoaMin21 = 0;  aoaMax21 = 10*pi/180;
 
-if mode == 0
-    bankMin21 = -90*pi/180; bankMax21 =   90*pi/180; 
-else
-    if returnMode == 0
-    bankMin21 = -1*pi/180; bankMax21 =   1*pi/180;    
-    else
-    bankMin21 = -1*pi/180; bankMax21 =   90*pi/180;
-    end
-end
+bankMin21 = -90*pi/180; 
+bankMax21 =   90*pi/180; 
 
-    
-% if returnMode == 0
-% bankMin21 = -1*pi/180; bankMax21 =   1*pi/180;    
-% else
-% bankMin21 = -1*pi/180; bankMax21 =   90*pi/180;
-% end
+AltMin21 = 1;
+AltMax21 = MaxviscAlt21;
 
-if mode == 0
-    zetaMin21 = -4*pi;
-    zetaMax21 = 2*pi;
-else
-    zetaMin21 = Stage2.Bounds.zeta(1);
-    zetaMax21 = Stage2.Bounds.zeta(2);
-end
+vMin21 = 1000;
+vMax21 = 3000;
+
+mFuelMin21 = 0;
+mFuelMax21 = Stage2.mFuel;
+
+gammaMin21 = -0.5;
+gammaMax21 = deg2rad(15);
 
 % Primal Bounds
-bounds.phase(2).state.lower = [Stage2.Bounds.Alt(1), lonMin, latMin2, Stage2.Bounds.v(1), Stage2.Bounds.gamma(1), zetaMin21, aoaMin21, bankMin21, Stage2.Bounds.mFuel(1)];
-bounds.phase(2).state.upper = [Stage2.Bounds.Alt(2), lonMax, latMax2, Stage2.Bounds.v(2), deg2rad(15), zetaMax21, aoaMax21, bankMax21, Stage2.Bounds.mFuel(2)];
+bounds.phase(2).state.lower = [AltMin21, lonMin, latMin, vMin21, gammaMin21, zetaMin, aoaMin21, bankMin21, mFuelMin21];
+bounds.phase(2).state.upper = [AltMax21, lonMax, latMax, vMax21, deg2rad(15), zetaMax, aoaMax21, bankMax21, mFuelMax21];
 
 % Initial States
-if returnMode == 1
-   bounds.phase(2).initialstate.lower = [Stage2.Bounds.Alt(1),lonMin, latMin2, Stage2.Bounds.v(1), Stage2.Bounds.gamma(1), zetaMin21, aoaMin21, 0, Stage2.Initial.mFuel] ;
-bounds.phase(2).initialstate.upper = [Stage2.Bounds.Alt(2),lonMax, latMax2, Stage2.Bounds.v(2), deg2rad(15), zetaMax21, aoaMax21, 0, Stage2.Initial.mFuel];
- 
-else
-bounds.phase(2).initialstate.lower = [Stage2.Bounds.Alt(1),lonMin, latMin2, Stage2.Bounds.v(1), Stage2.Bounds.gamma(1), zetaMin21, aoaMin21, bankMin21, Stage2.Initial.mFuel] ;
-bounds.phase(2).initialstate.upper = [Stage2.Bounds.Alt(2),lonMax, latMax2, Stage2.Bounds.v(2), deg2rad(15), zetaMax21, aoaMax21, bankMax21, Stage2.Initial.mFuel];
-end
-
-% bounds.phase(2).initialstate.lower = [Stage2.Bounds.Alt(1),lon0, lat0, 1500, Stage2.Bounds.gamma(1), Stage2.Bounds.zeta(1), aoaMin21, bankMin21, Stage2.Initial.mFuel] ;
-% bounds.phase(2).initialstate.upper = [Stage2.Bounds.Alt(2),lon0, lat0, 1500, deg2rad(15), Stage2.Bounds.zeta(2), aoaMax21, bankMax21, Stage2.Initial.mFuel];
+bounds.phase(2).initialstate.lower = [AltMin21,lonMin, latMin, vMin21, gammaMin21, zetaMin, aoaMin21, 0, mFuelMin21] ; % initial bank angle at separation is 0
+bounds.phase(2).initialstate.upper = [AltMax21,lonMax, latMax, vMax21, deg2rad(15), zetaMax, aoaMax21, 0, mFuelMax21];
 
 % End States
 % End bounds are set slightly differently, to encourage an optimal solution
-bounds.phase(2).finalstate.lower = [20000, lonMin, latMin2, 2300, 0, zetaMin21, aoaMin21, 0, Stage2.End.mFuel];
-if mode == 90
-bounds.phase(2).finalstate.upper = [45000, lonMax, latMax2, Stage2.Bounds.v(2), deg2rad(0.5), zetaMax21, aoaMax21, 0, Stage2.Initial.mFuel];
-else
-bounds.phase(2).finalstate.upper = [45000, lonMax, latMax2, Stage2.Bounds.v(2), deg2rad(20), zetaMax21, aoaMax21, 0, Stage2.Initial.mFuel];
-end
-% bounds.phase(2).finalstate.lower = [34000, lonMin, latMin2, 2300, 0, Stage2.Bounds.zeta(1), aoaMin21, 0, Stage2.End.mFuel];
-% bounds.phase(2).finalstate.upper = [45000, lonMax, latMax2, Stage2.Bounds.v(2), 0, Stage2.Bounds.zeta(2), aoaMax21, 0, Stage2.Initial.mFuel];
-%  disp('gamma set to 0')
+bounds.phase(2).finalstate.lower = [AltMin21, lonMin, latMin, vMin21, 0, zetaMin, aoaMin21, 0, mFuelMin21]; % limit trajectory angle to minimum of 0 at SPARTAN-third stage separation
+bounds.phase(2).finalstate.upper = [AltMax21, lonMax, latMax, vMax21, gammaMax21, zetaMax, aoaMax21, 0, mFuelMax21];
  
+
 % Control Bounds
 bounds.phase(2).control.lower = [deg2rad(-.5), deg2rad(-1)];
 bounds.phase(2).control.upper = [deg2rad(.5), deg2rad(1)];
 
 % Time Bounds
 bounds.phase(2).initialtime.lower = 0;
-bounds.phase(2).initialtime.upper = Stage2.Bounds.time(2);
-bounds.phase(2).finaltime.lower = Stage2.Bounds.time(1);
-bounds.phase(2).finaltime.upper = Stage2.Bounds.time(2);
+bounds.phase(2).initialtime.upper = 1000; % much longer time than it should fly for
+bounds.phase(2).finaltime.lower = 100; % makes sure that time progresses forward
+bounds.phase(2).finaltime.upper = 1000;
 
 
 %% Define Path Constraints
 % Path bounds, defined in Continuous function.
 % These limit the dynamic pressure.
-% if mode == 1 || mode == 14 || mode == 15 || mode == 2
 
-% if mode ==90
-%         bounds.phase(2).path.lower = [49500];
-%     bounds.phase(2).path.upper = [50500];
-% else
-    bounds.phase(2).path.lower = [0];
-    bounds.phase(2).path.upper = [50000];
-% end
-% elseif mode ==3 || mode == 32
-%         bounds.phase(2).path.lower = [49970];
-%     bounds.phase(2).path.upper = [50030];
-% end
-if mode == 90
+bounds.phase(2).path.lower = [0];
+bounds.phase(2).path.upper = Stage2.maxq;
+
+if mode == 90 % if constant dynamic pressure flight is desired
 bounds.phase(2).integral.lower = 0;
 bounds.phase(2).integral.upper = 10000000;
 end
@@ -910,26 +819,21 @@ end
 % solution, even for a well defined problem. 
 
 % guess.phase(2).state(:,1)   = [24000;35000];
-if mode == 0
+
 guess.phase(2).state(:,2)   = [lon0;lon0];
-guess.phase(2).state(:,3)   = [lat0;lat0-0.1]; 
-else
-guess.phase(2).state(:,2)   = [2.53;2.5368];
-guess.phase(2).state(:,3)   = [-0.269;-0.10];
-end
+guess.phase(2).state(:,3)   = [lat0;lat0+0.2]; 
 
-guess.phase(2).state(:,4)   = Stage2.Guess.v.';
-guess.phase(2).state(:,5)   = Stage2.Guess.gamma.';
 
-if mode == 0
-    guess.phase(2).state(:,6)   = [-pi;-pi];
-else
-guess.phase(2).state(:,6)   = Stage2.Guess.zeta.';
-end
+guess.phase(2).state(:,4)   = [1500; 2900];
+guess.phase(2).state(:,5)   = [0.0; deg2rad(3)];
+
+
+guess.phase(2).state(:,6)   = [pi;pi];
+
 
 guess.phase(2).state(:,7)   = [2*pi/180; 5*pi/180];
 guess.phase(2).state(:,8)   = [deg2rad(10);deg2rad(10)];
-guess.phase(2).state(:,9) 	= [Stage2.Initial.mFuel; 100];
+guess.phase(2).state(:,9) 	= [Stage2.mFuel; 100];
 
 guess.phase(2).control      = [[0;0],[0;0]];
 guess.phase(2).time          = [0;650];
@@ -937,29 +841,22 @@ guess.phase(2).time          = [0;650];
 if mode == 90
 guess.phase(2).integral = 0
 end
+
 % Tie stages together
 bounds.eventgroup(2).lower = [zeros(1,9)];
 bounds.eventgroup(2).upper = [zeros(1,9)]; 
 
 %% Flyback
-tfMin = 0;            tfMax = 5000;
-altMin = 10;  altMax = 70000;
-speedMin = 10;        speedMax = 5000;
-fpaMin = -80*pi/180;  fpaMax =  80*pi/180;
 
-if mode == 0
-aziMin = -4*pi; aziMax =  4*pi;
-else
-aziMin = 60*pi/180; aziMax =  500*pi/180;
-end
+AltMin22 = 10;  AltMax22 = MaxviscAlt21; % set maximum altitude bound to highest altitude provided in viscous database
+
+vMin22 = 10;        vMax22 = 5000;
+
+gammaMin22 = -80*pi/180;  gammaMax22 =  80*pi/180;
 
 mFuelMin = 0; mFuelMax = 500;
 
-if mode == 0
 bankMin21 = -90*pi/180; bankMax21 =   90*pi/180;  
-else
-bankMin21 = -10*pi/180; bankMax21 =   90*pi/180;
-end
 
 throttleMin = 0; throttleMax = 1;
 
@@ -970,27 +867,26 @@ bounds.phase(3).finaltime.upper = 4000;
 
 % Initial Bounds
 
- bounds.phase(3).initialstate.lower = [altMin, lonMin, latMin2, speedMin, fpaMin, aziMin, aoaMin21, 0, mFuelMin, throttleMin];
-bounds.phase(3).initialstate.upper = [altMax, lonMax, latMax2, speedMax, fpaMax, aziMax, aoaMax21, 0, mFuelMax, throttleMax];   
+ bounds.phase(3).initialstate.lower = [AltMin22, lonMin, latMin, vMin22, gammaMin22, zetaMin, aoaMin21, 0, mFuelMin, throttleMin];
+bounds.phase(3).initialstate.upper = [AltMax22, lonMax, latMax, vMax22, gammaMax22, zetaMax, aoaMax21, 0, mFuelMax, throttleMax];   
 
 % State Bounds
 if returnMode == 0
-bounds.phase(3).state.lower = [altMin, lonMin, latMin2, speedMin, fpaMin, aziMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
-bounds.phase(3).state.upper = [altMax, lonMax, latMax2, speedMax, fpaMax, aziMax, aoaMax21, bankMax21, 1, throttleMax];
+bounds.phase(3).state.lower = [AltMin22, lonMin, latMin, vMin22, gammaMin22, zetaMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
+bounds.phase(3).state.upper = [AltMax22, lonMax, latMax, vMax22, gammaMax22, zetaMax, aoaMax21, bankMax21, 1, throttleMax];
 else
-bounds.phase(3).state.lower = [altMin, lonMin, latMin2, speedMin, fpaMin, aziMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
-bounds.phase(3).state.upper = [altMax, lonMax, latMax2, speedMax, fpaMax, aziMax, aoaMax21, bankMax21, mFuelMax, throttleMax];
+bounds.phase(3).state.lower = [AltMin22, lonMin, latMin, vMin22, gammaMin22, zetaMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
+bounds.phase(3).state.upper = [AltMax22, lonMax, latMax, vMax22, gammaMax22, zetaMax, aoaMax21, bankMax21, mFuelMax, throttleMax];
 end
 % End State Bounds
 if returnMode == 0
-bounds.phase(3).finalstate.lower = [altMin, lonMin, latMin2, speedMin, fpaMin, aziMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
-bounds.phase(3).finalstate.upper = [altMax, lonMax, latMax2, speedMax, fpaMax, aziMax, aoaMax21, bankMax21, mFuelMax, throttleMax];
+bounds.phase(3).finalstate.lower = [AltMin22, lonMin, latMin, vMin22, gammaMin22, zetaMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
+bounds.phase(3).finalstate.upper = [AltMax22, lonMax, latMax, vMax22, gammaMax22, zetaMax, aoaMax21, bankMax21, mFuelMax, throttleMax];
 else
-% bounds.phase(3).finalstate.lower = [altMin, lon0, lat0, speedMin, deg2rad(-20), aziMin, aoaMin21, bankMin21, Stage2.End.mFuel, throttleMin];
-% bounds.phase(3).finalstate.upper = [altMax, lon0, lat0, speedMax, deg2rad(30), aziMax, aoaMax21, bankMax21, Stage2.End.mFuel, throttleMax];
-bounds.phase(3).finalstate.lower = [altMin, lon0, lat0, speedMin, fpaMin, aziMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
-bounds.phase(3).finalstate.upper = [1000, lon0, lat0, speedMax, fpaMax, aziMax, aoaMax21, bankMax21, mFuelMax, throttleMax];
+bounds.phase(3).finalstate.lower = [AltMin22, lon0, lat0, vMin22, gammaMin22, zetaMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
+bounds.phase(3).finalstate.upper = [1000, lon0, lat0, vMax22, gammaMax22, zetaMax, aoaMax21, bankMax21, mFuelMax, throttleMax];
 end
+
 % Control Bounds
 if returnMode == 1 % these being different has no purpose but to keep my ascent results consistent
  bounds.phase(3).control.lower = [deg2rad(-.5), deg2rad(-1), -.1];
@@ -999,6 +895,7 @@ else
 bounds.phase(3).control.lower = [deg2rad(-.5), deg2rad(-1), -.2];
 bounds.phase(3).control.upper = [deg2rad(.5), deg2rad(1), .2];
 end
+
 % Path Bounds
 bounds.phase(3).path.lower = 0;
 bounds.phase(3).path.upper = 50000;

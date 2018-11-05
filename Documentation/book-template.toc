@@ -1,0 +1,10 @@
+\select@language {english}
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}
+\contentsline {chapter}{\numberline {2}Getting Started}{3}{chapter.2}
+\contentsline {section}{\numberline {2.1}Prerequisite Knowledge}{3}{section.2.1}
+\contentsline {section}{\numberline {2.2}The Pseudospectral Method}{3}{section.2.2}
+\contentsline {chapter}{\numberline {3}Inputs}{5}{chapter.3}
+\contentsline {chapter}{\numberline {4}Outputs}{7}{chapter.4}
+\contentsline {chapter}{\numberline {5}Configuration of GPOPS-2}{9}{chapter.5}
+\contentsline {section}{\numberline {5.1}Structure of LODESTAR}{9}{section.5.1}
+\contentsline {chapter}{\numberline {6}Example Trajectory}{11}{chapter.6}

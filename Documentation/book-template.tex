@@ -1,0 +1,163 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% LaTeX book template                           %%
+%% Author:  Amber Jain (http://amberj.devio.us/) %%
+%% License: ISC license                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[a4paper,11pt]{book}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Source: http://en.wikibooks.org/wiki/LaTeX/Hyperlinks %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage[english]{babel}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 'dedication' environment: To add a dedication paragraph at the start of book %
+% Source: http://www.tug.org/pipermail/texhax/2010-June/015184.html            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newenvironment{dedication}
+{
+   \cleardoublepage
+   \thispagestyle{empty}
+   \vspace*{\stretch{1}}
+   \hfill\begin{minipage}[t]{0.66\textwidth}
+   \raggedright
+}
+{
+   \end{minipage}
+   \vspace*{\stretch{3}}
+   \clearpage
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Chapter quote at the start of chapter        %
+% Source: http://tex.stackexchange.com/a/53380 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\makeatletter
+\renewcommand{\@chapapp}{}% Not necessary...
+\newenvironment{chapquote}[2][2em]
+  {\setlength{\@tempdima}{#1}%
+   \def\chapquote@author{#2}%
+   \parshape 1 \@tempdima \dimexpr\textwidth-2\@tempdima\relax%
+   \itshape}
+  {\par\normalfont\hfill--\ \chapquote@author\hspace*{\@tempdima}\par\bigskip}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% First page of book which contains 'stuff' like: %
+%  - Book title, subtitle                         %
+%  - Book author name                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Book's title and subtitle
+\title{\Huge \textbf{Sample Book Title}  \footnote{This is a footnote.} \\ \huge Sample book subtitle \footnote{This is yet another footnote.}}
+% Author
+\author{\textsc{First-name Last-name}\thanks{\url{www.example.com}}}
+
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+
+\tableofcontents
+
+
+\mainmatter
+
+
+\chapter{Introduction}
+
+\textbf{Number these sections/topics, and comment in corresponding numbers into LODESTAR}
+
+This document details the operation of LODESTAR, a program for launch vehicle trajectory optimisation. LODESTAR is based on the GPOPS-2 optimal control package, which utilises the pseudospectral method of optimal control. Specific details of the operation of GPOPS-2 can be found in the GPOPS-2 User Guide[CITEXX]. LODESTAR configures GPOPS-2 to calculate an optimal trajectory solution, and calculates a simulation of a launch system in a manner which facilitates an accurate and robust trajectory optimisation.
+
+-what is LODESTAR actually doing, ie doing 6dof calculations, doing forward sims
+
+\chapter{Getting Started}
+-assumed prerequisite knowledge, optimisation, and lead into PS method
+
+\section{Prerequisite Knowledge}
+This document assumes some familiarity with optimal control theory, including the concept of a constrained optimal control problem. Intimate knowledge of the optimal control process is not required to configure LODESTAR to a basic level, however it is useful to have a general understanding of the processes employed by GPOPS-2, including the purpose of transcription methods, and the operation of the pseudospectral method in particular.
+
+\section{The Pseudospectral Method}
+The pseudospectral method utilised by GPOPS-2 is a robust and accurate method of transcription for complex optimal control problems. Specific details of the pseudospectral method can be found in [CITEXX my thesis?].
+
+-detail states, controls and constraints and why they are important.
+-dont go into too much detail
+
+
+
+
+
+
+
+
+
+
+\chapter{Inputs}
+-aero
+ -variable CG requires multiple aero tables (make note that if SPARTAN operates differently this will have to be changed)
+ 
+ -include clic details
+ 
+
+-engine
+ -include both the tabular data, and the engine mat file 
+
+-details of config files
+
+-provide some details of how aero and engine is interpolated, and the best way to organise the data for inputs. link to output plots and how to determine if the input data format is negatively affecting the optimal solution. Provide some solutions for if the engine or aero data is being interpolated poorly. 
+
+\chapter{Outputs}
+
+-list of output plots and tables
+
+-detail verification 
+ -include what plots are more important for verification, and when to conclude that a solution is acceptable
+ 
+-troubleshooting tips
+ -include how sensitive the trajectory is to first and third stages
+
+
+-output matlab file, how to import, get data from it, and re-plot using it
+
+\chapter{Structure of LODESTAR}
+-detail each individual subroutine (maybe a modified version of flowchart)
+
+\section{Vehicle Model}
+-interpolation schemes
+-variable CG
+
+
+\section{Configuration of GPOPS-2}
+-the backend stuff of LODESTAR
+- dont go into too much detail here, maybe just list states and controls and provide some info on guesses 
+
+-6DOF dynamics (with reference)
+
+\section{Uncontrolled Phase simulations}
+-phases simulation via 
+
+\section{verification}
+-how the verification is calculated
+
+\chapter{Example Trajectory}
+
+-detail a simple example, using the existing aero and launching from australia
+
+
+This section contains an example of a trajectory optimisation using LODESTAR, to illustrate the capabilities of LODESTAR and to provide insight into what is required of a user. 
+
+Firstly, the file config.m is set up to contain the design parameters of the vehicle such as the mass, reference area and design constraints of the vehicle. 
+
+
+
+
+
+\end{document}

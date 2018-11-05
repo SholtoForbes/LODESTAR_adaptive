@@ -1,4 +1,24 @@
-% Vehicle Config File For LODESTAR
+% Config File For LODESTAR
+
+
+%% make it so that you run LODESTAR from here
+
+%% Choose LODESTAR Mode
+
+%% Parallelisation 
+% insert options for core usage here
+
+%% GPOPS-2 Options
+%put most relevant gpops-2 options here
+
+%% 
+% Lattude and Longitude of Launch Site
+Mission.lat0 = deg2rad(-12.4466); % Equatorial Launch Australia Spaceport near Nhulunbuy
+Mission.lon0 = deg2rad(136.845);
+
+% Target Orbital Inclination
+Mission.FinalInc = acos(-((566.89+6371)/12352)^(7/2));
+
 
 %% First Stage
 
@@ -25,6 +45,12 @@ Stage1.mEngine = 470; % kg. Mass of Merlin 1C
 
 
 %% Second Stage
+
+% Maximum Dynamic Pressure 
+Stage2.maxq = 50000;
+
+% Reference Area
+Stage2.refA = 62.77; %m^2
 
 % Structural Mass
 Stage2.mStruct = 4910.5 - 132.8 + 179.41;% kg. Mass of everything but fuel from dawids work.

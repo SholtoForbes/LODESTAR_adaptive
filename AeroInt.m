@@ -204,13 +204,13 @@ for i = 1:numel(Mgrid_EngineOn)
     [I{:}] = ind2sub(size(Mgrid_EngineOn),i);
     
     Cl_Grid_EngineOn(I{(1)},I{(2)},I{(3)}) = Cl_temp_EngineOn+Cl_temp_Engine+Cl_temp_ViscousEngineOn+flap_Cl_temp_EngineOn;
-    Cd_Grid_EngineOn(I{(1)},I{(2)},I{(3)}) = Cd_temp_EngineOn+Cd_temp_Engine+Cd_temp_ViscousEngineOn+flap_Cd_temp_EngineOn; 
+    Cd_Grid_EngineOn(I{(1)},I{(2)},I{(3)}) = Cd_temp_EngineOn+Cd_temp_Engine+Cd_temp_ViscousEngineOn+flap_Cd_temp_EngineOn; % forces include SPARTAN body, additional thrust from extra engine expantion and boat tail, viscous effects, and flaps
     Cm_Grid_EngineOn(I{(1)},I{(2)},I{(3)}) = Cm_temp_EngineOn;
 
     Cl_Grid_NoEngineNoFlap(I{(1)},I{(2)},I{(3)}) = Cl_temp_EngineOn+Cl_temp_ViscousEngineOn;
     Cl_Grid_ViscousEngineOn(I{(1)},I{(2)},I{(3)}) = Cl_temp_ViscousEngineOn;
     
-    T_Grid(I{(1)},I{(2)},I{(3)}) = Cd_temp_Engine*q*auxdata.A+T; % Cd engine is 'drag' of engine and boat tail (thrust)
+    T_Grid(I{(1)},I{(2)},I{(3)}) = Cd_temp_Engine*q*auxdata.A+T; % Cd engine is 'drag' of extra engine expansion and boat tail (thrust)
     Isp_Grid(I{(1)},I{(2)},I{(3)}) = (Cd_temp_Engine*q*auxdata.A+T)/Fueldt/9.81;
     
     Cl_Grid_Engine(I{(1)},I{(2)},I{(3)}) = Cl_temp_Engine;

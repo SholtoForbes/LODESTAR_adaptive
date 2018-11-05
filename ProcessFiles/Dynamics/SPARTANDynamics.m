@@ -1,4 +1,4 @@
-function [altdot,xidot,phidot,gammadot,a,zetadot, q, M, D, rho,L,Fueldt,T,Isp,q1,flap_deflection,heating_rate,CG,T1,P1,M1,P0] = SPARTANDynamics(gamma, alt, v,auxdata,zeta,phi,xi,alpha,eta,throttle,mFuel,mFuelinit,mFuelend,ThirdStage,forwardflag)
+function [altdot,xidot,phidot,gammadot,a,zetadot, q, M, D, rho,L,Fueldt,T,Isp,q1,flap_deflection,heating_rate,CG,T1,P1,M1,P0,Fueldt_max] = SPARTANDynamics(gamma, alt, v,auxdata,zeta,phi,xi,alpha,eta,throttle,mFuel,mFuelinit,mFuelend,ThirdStage,forwardflag)
 %===================================================
 %
 % SPARTAN DYNAMICS SIMULATION
@@ -30,7 +30,9 @@ T0 = ppval(interp.T0_spline, alt);
 
 P0 = ppval(interp.P0_spline, alt);
 %% Thrust 
-
+% note that the thrust and Isp calculated here is only for the portion of
+% the engine simulated by the CRESTM10 database, and does not include the
+% extra area of expansion
 
 [Isp_nozzlefront,Fueldt_max,eq,q1,T1,P1,M1] = RESTint(M, rad2deg(alpha), auxdata,T0,P0); % Calculate C-REST engine properties
 
