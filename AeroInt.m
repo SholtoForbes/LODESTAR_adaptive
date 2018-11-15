@@ -256,46 +256,11 @@ T_spline = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,altgrid_EngineOn,T
 
 Fd_spline_NoEngine = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,altgrid_EngineOn,Cd_Grid_NoEngine,'spline','linear');
 Cd_spline_ViscousEngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,altgrid_EngineOn,Cd_Grid_ViscousEngineOn,'spline','linear');
-% Cl_spline_EngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,altgrid_EngineOn,Cl_Grid_EngineOn,'linear','linear');
-% Cd_spline_EngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,altgrid_EngineOn,Cd_Grid_EngineOn,'linear','linear');
-% flap_spline_EngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,altgrid_EngineOn,flap_Grid_EngineOn,'linear','linear');
-% Cm_spline_EngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,altgrid_EngineOn,Cm_Grid_EngineOn,'linear','linear');
 
-% Cl_spline_EngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,Cl_Grid_EngineOn,'spline','linear');
-% Cd_spline_EngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,Cd_Grid_EngineOn,'spline','linear');
-% flap_spline_EngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,flap_Grid_EngineOn,'spline','linear');
-% Cm_spline_EngineOn = griddedInterpolant(Mgrid_EngineOn,AOAgrid_EngineOn,Cm_Grid_EngineOn,'spline','linear');
-% permute(Mgrid_EngineOff(9,:,:),[3 2 1])
-MList_EngineOn
-MList_EngineOff
-plotaero = 'no';
+
+%%
+plotaero = 'no'; % choose whether to plot a set of time-intensive contour plots to investigate the performance of the second stage vehicle
 if strcmp(plotaero,'yes')
-% figure(401)
-% contourf(permute(AOAgrid_EngineOff(9,:,:),[3 2 1]),permute(altgrid_EngineOff(9,:,:),[3 2 1]),permute(Cl_Grid_test_EngineOff(9,:,:),[3 2 1]),5000,'LineColor','none')
-% xlabel('Mach no.')
-% ylabel('Angle of Attack (deg)')
-% title('Lift COefficient, No Flaps, Engine Off')
-% c = colorbar;
-% c.Label.String = 'Lift Coefficient';
-
-% 
-% figure(402)
-% contourf(Mgrid_EngineOff,AOAgrid_EngineOff,Cd_Grid_test_EngineOff,5000,'LineColor','none')
-% xlabel('Mach no.')
-% ylabel('Angle of Attack (deg)')
-% title('Drag COefficient, No Flaps, Engine Off')
-% c = colorbar;
-% c.Label.String = 'Drag Coefficient';
-% 
-% 
-% figure(403)
-% contourf(Mgrid_EngineOff,AOAgrid_EngineOff,Cl_Grid_test_EngineOff./Cd_Grid_test_EngineOff,5000,'LineColor','none')
-% xlabel('Mach no.')
-% ylabel('Angle of Attack (deg)')
-% title('L/D, No Flaps, Engine Off')
-% c = colorbar;
-% c.Label.String = 'L/D';
-% shading interp
 
 figure(4010)
 contourf(Mgrid_EngineOn(:,:,3),AOAgrid_EngineOn(:,:,3),flap_Grid_EngineOn(:,:,3),3000,'LineColor','none')

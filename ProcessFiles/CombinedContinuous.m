@@ -10,11 +10,11 @@ u = input.phase(1).control';
 phase = 'postpitch';
 
 interp = auxdata.interp;
-Throttle = auxdata.Throttle;
-Vehicle = auxdata.Vehicle;
+Throttle = auxdata.Stage1.Throttle;
+Stage1 = auxdata.Stage1;
 Atmosphere = auxdata.Atmosphere;
 
-[dz1,q1,xi1] = FirstStageDynamics(x,u,t,phase,interp,Throttle,Vehicle,Atmosphere,auxdata); % Pass primal variables into dynamics simulator
+[dz1,q1,xi1] = FirstStageDynamics(x,u,t,phase,interp,Throttle,Stage1,Atmosphere,auxdata); % Pass primal variables into dynamics simulator
 
 
 phaseout(1).path = q1';

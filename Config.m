@@ -1,47 +1,92 @@
 % Config File For LODESTAR
-
-
-%% make it so that you run LODESTAR from here
+clear all;
+clc
 
 %% Choose LODESTAR Mode
+% =========================================================================
+% SET RUN MODE
+% =========================================================================
+% Change mode to set the target of the simulation. Much of the problem
+% definition changes with mode.
 
-%% Parallelisation 
-% insert options for core usage here
+% mode 1: 50kPa, standard trajectory, used for optimal trajectory calculation
+% mode 2: Dynamic Pressure Variation
+% mode 3: Isp Variation
+% mode 4: Cd Variation
+% mode 5: Viscous Cd Variation - goes from approximately fully laminar to
+% fully turbulent
 
-%% GPOPS-2 Options
-%put most relevant gpops-2 options here
+% mode 6: First Stage mass
+% mode 7: Third Stage Drag Variation
+% mode 8: Third Stage Mass Variation
+% mode 9: Third Stage Isp variation
+% mode 10: SPARTAN mass 
+% mode 11: SPARTAN fuel mass 
 
-%% 
+% mode 12: SPARTAN Thrust angle - not implemented
+% mode 13: Boat tail lift - not implemente
+% mode 14: Boat tail drag - not implemented
+
+% mode 90: const q
+% mode 99: interaction mode
+
+% mode 0: Alternate launch location
+
+mode = 1;
+auxdata.mode = mode;
+
+returnMode = 1;% Flag for setting the return of the SPARTAN. 0 = not constrained (no return), 1 = constrained (return)
+auxdata.returnMode = returnMode;
+
+%% Mission Definition
 % Lattude and Longitude of Launch Site
 Mission.lat0 = deg2rad(-12.4466); % Equatorial Launch Australia Spaceport near Nhulunbuy
 Mission.lon0 = deg2rad(136.845);
 
 % Target Orbital Inclination
-Mission.FinalInc = acos(-((566.89+6371)/12352)^(7/2));
+Mission.FinalInc = acos(-((566.89+6371)/12352)^(7/2)); % SSO
 
 
 %% First Stage
 
-% Sea Level Thrust
-Stage1.T = 555900; % N
+% Sea Level Thrust, 
+Stage1.TSL = 555900; % N, from Falcon 1 users guide. 
 
 % Sea Level Specific Impulse
-Stage1.Isp = 275; % s
+Stage1.IspSL = 275; % s,  From encyclopaedia astronautica, confirmed up by falcon 1 users guide
 
 % Nozzle Exit Area
 Stage1.Anoz = 0.5518; % m^2
 
 % Throttle
-Stage1.Throttle = 0.85; % To throttle down the rocket so that it can pitch over more easily.
+Stage1.Throttle = 0.7; % Throttle down the rocket so that it can pitch over more easily. This is a constant thrust modifier.
 
 % Scaled Mass 
-Stage1.m = 21816; % kg. This is the mass that the Falcon 1e would be if scaled down. Note that this gives the maximum possible fuel mass, which will be minimised.
+Stage1.m = 19569; % total mass of scaled Falcon at 8.5m. note, this is the maximum total mass, and will not necessarily be the final total mass as the fuel mass may be reduced during optimisation. Calculated using the method outlined in SIZING.docx
 
 % Fuel Mass Fraction
 Stage1.FMF = 0.939; 
 
 % Engine Mass
 Stage1.mEngine = 470; % kg. Mass of Merlin 1C
+
+Stage1.mFuel = Stage1.FMF*(Stage1.m-Stage1.mEngine); % structural mass fraction calculated without engine
+
+% First Stage Thrust and Isp are modified with altitude through the formula: SL + (101325-P_atm)*Mod, which varies the Thrust and Isp from sea level to vacuum with pressure %
+% Thrust Modifier
+Stage1.TMod = 0.5518; % Calculated with an exit area calculated in SIZING.docx
+% Isp Modifier
+Stage1.IspMod = 2.9410e-04;
+
+
+% Reference Area
+Stage1.Area = 62.77; % m^2
+
+% Centre of Gravity
+Stage1.CG = 23.5262; % m, calculated in clicalcCGvar.m
+
+% Total Length
+Stage1.L = 22.94+8.5;
 
 
 %% Second Stage
@@ -87,3 +132,20 @@ Stage3.Eff = 0.98; % efficiency reduction due to mass flow rate increase.
 
 % Reference Area
 Stage3.Aref = 0.95; % diameter of 1.1m
+
+
+
+
+
+
+%% Add LODESTAR Folder to Path
+% Determine config file location
+folder = fileparts(which(mfilename)); 
+% Add that folder plus all subfolders to the path.
+addpath(genpath(folder));
+
+warning off
+warning('off', 'MATLAB:scatteredInterpolant:DupPtsAvValuesWarnId');
+
+%% Run LODESTAR
+run CombinedProbGPOPS

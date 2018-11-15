@@ -7,8 +7,8 @@ v0_prepitch = 0;  %Rocket starts stationary
 
 gamma0_prepitch = deg2rad(90);
 
-Isp = Vehicle.Isp.SL;
-T = Vehicle.T.SL*Throttle;
+Isp = Vehicle.IspSL;
+T = Vehicle.TSL*Throttle;
 dm = -T./Isp./9.81;
 m0_prepitch = m_f - dm*t_f;  %Add some fuel onto the rocket to go first section
 

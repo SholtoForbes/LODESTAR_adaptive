@@ -7,7 +7,7 @@ m = z(3,:);   %Mass
 gamma = z(4,:);
 phi = z(5,:);
 
-
+% 
 dalphadt = 0;
 
 if isnan(gamma)
@@ -26,18 +26,18 @@ speedOfSound = interp1(Atmosphere(:,1),Atmosphere(:,5),h);
 
 q = 0.5*density.*v.^2;
 
-SCALE = 1.;
+% SCALE = 1.;
 % SCALE = 1; %this is engine exit area scale
 % Merlin 1C engine 
 
-T = Vehicle.T.SL + (101325 - P_atm)*Vehicle.T.Mod; % Thrust from Falcon 1 users guide. exit area calculated in SCALING.docx
+T = auxdata.Stage1.TSL + (101325 - P_atm)*auxdata.Stage1.TMod; % Thrust from Falcon 1 users guide. exit area calculated in SCALING.docx
 
 T = T.*Throttle; % Throttle down
 
-Isp = Vehicle.Isp.SL + (101325 - P_atm)*Vehicle.Isp.Mod; % linear regression of SL and vacuum Isp. From encyclopaedia astronautica, backed up by falcon 1 users guide
+Isp = auxdata.Stage1.IspSL + (101325 - P_atm)*auxdata.Stage1.IspMod; % linear regression of SL and vacuum Isp. From encyclopaedia astronautica, backed up by falcon 1 users guide
 
 
-dm = -T./Isp./g*SCALE;
+dm = -T./Isp./g;
 
 
 mach = v./speedOfSound;
@@ -49,10 +49,10 @@ Cm = interp.MomentGridded(mach,rad2deg(alpha));
 
 % Compute Thrust Vector
 
-vec_angle = -asin(Cm./(T/(auxdata.Vehicle.CG - auxdata.Vehicle.L)./q));
+vec_angle = -asin(Cm./(T/(auxdata.Stage1.CG - auxdata.Stage1.L)./q));
 %%%% Compute the drag:
 
-Area = Vehicle.Area; 
+Area = auxdata.Stage1.Area; 
 D = 0.5*Cd.*Area.*density.*v.^2*auxdata.Cdmod;
 global L
 L = 0.5*Cl.*Area.*density.*v.^2;

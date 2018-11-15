@@ -3,56 +3,34 @@
 % By Sholto Forbes-Spyratos
 % Utilises the GPOPS-2 proprietary optimisation software
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clear all;
-clc
+
 
 %%
-% =========================================================================
-% SET RUN MODE
-% =========================================================================
-% Change mode to set the target of the simulation. Much of the problem
-% definition changes with mode.
 
-% mode 1: 50kPa, standard trajectory, used for optimal trajectory calculation
-% mode 2: Dynamic Pressure Variation
-% mode 3: Isp Variation
-% mode 4: Cd Variation
-% mode 5: Viscous Cd Variation - goes from approximately fully laminar to
-% fully turbulent
-
-% mode 6: First Stage mass
-% mode 7: Third Stage Drag Variation
-% mode 8: Third Stage Mass Variation
-% mode 9: Third Stage Isp variation
-% mode 10: SPARTAN mass 
-% mode 11: SPARTAN fuel mass 
-
-% mode 12: SPARTAN Thrust angle - not implemented
-% mode 13: Boat tail lift - not implemente
-% mode 14: Boat tail drag - not implemented
-
-% mode 90: const q
-% mode 99: interaction mode
-
-% mode 0: Alternate launch location
-
-mode = 1
-auxdata.mode = mode;
-
-returnMode = 1% Flag for setting the return of the SPARTAN. 0 = not constrained (no return), 1 = constrained (return)
-auxdata.returnMode = returnMode;
-
-
+disp('---------------------------------------------------------------------')
+disp('|                                                                   |')
+disp('|                 *         Initialising          *                 |')
+disp('|                                                                   |')
+disp('|             _     ___   ___   ___  ___  _____  _    ___           |')
+disp('|            | |   / _ \ |   \ | __|/ __||_   _|/_\  | _ \          |')
+disp('|            | |__| (_) || |) || _| \__ \  | | / _ \ |   /          |')
+disp('|            |____|\___/ |___/ |___||___/  |_|/_/ \_\|_|_\          |')
+disp('|                                                                   |')
+disp('|                                                                   |')
+disp('|                Authored by Sholto Forbes-Spyratos                 |')
+disp('---------------------------------------------------------------------')
 %% Import Vehicle and trajectory Config Data %%============================
 
-run Config.m
+% run Config.m
 
 auxdata.Mission = Mission;
 auxdata.Stage3 = Stage3;
 auxdata.Stage2 = Stage2;
 
 
+
 %%
+disp('|                 *       Setting Run Mode        *                 |')
 
 % Set modifiers for mode variation
 auxdata.Ispmod = 1;
@@ -62,7 +40,7 @@ auxdata.m3mod = 1;
 auxdata.Isp3mod = 1;
 auxdata.Cd3mod = 1;
 
-addpath('.\Processing\num2words')
+% addpath('.\Processing\num2words')
 
 % Mode 1
 if mode == 1
@@ -81,72 +59,72 @@ if mode == 90
 namelist{1} = 'Constq';
 end
 % Mode 2
-q_vars = [40000 45000 50000 55000 60000]  % Set dynamic pressures to be investigated
+q_vars = [40000 45000 50000 55000 60000];  % Set dynamic pressures to be investigated
 if mode == 2
 
 %     for i = 1:length(q_vars)
 %         namelist{i} = ['qmax' num2words(q_vars(i)/1000)];
 %     end
 if returnMode == 1
-namelist = {'qForty' 'qFortyFive' 'qStandard' 'qFiftyFive' 'qSixty'}
+namelist = {'qForty' 'qFortyFive' 'qStandard' 'qFiftyFive' 'qSixty'};
 else
-namelist = {'qFortyNoReturn' 'qFortyFiveNoReturn' 'qStandardNoReturn' 'qFiftyFiveNoReturn' 'qSixtyNoReturn'}
+namelist = {'qFortyNoReturn' 'qFortyFiveNoReturn' 'qStandardNoReturn' 'qFiftyFiveNoReturn' 'qSixtyNoReturn'};
 end
 end
 
 % Mode 3
-Isp_vars = [0.9 0.95 1 1.05 1.1] 
+Isp_vars = [0.9 0.95 1 1.05 1.1] ;
 if mode == 3
 
 %     for i = 1:length(Isp_vars)
 %         namelist{i} = ['Isp' num2words(Isp_vars(i)*100) '%'];
 %     end
 if returnMode == 1
-    namelist = {'IspNinety' 'IspNinetyFive' 'IspStandard' 'IspOneHundredFive' 'IspOneHundredTen'}
+    namelist = {'IspNinety' 'IspNinetyFive' 'IspStandard' 'IspOneHundredFive' 'IspOneHundredTen'};
     else
-namelist = {'IspNinetyNoReturn' 'IspNinetyFiveNoReturn' 'IspStandardNoReturn' 'IspOneHundredFiveNoReturn' 'IspOneHundredTenNoReturn'}
+namelist = {'IspNinetyNoReturn' 'IspNinetyFiveNoReturn' 'IspStandardNoReturn' 'IspOneHundredFiveNoReturn' 'IspOneHundredTenNoReturn'};
 end
 end
 % Mode 4
-Cd_vars = [0.9 0.95 1 1.05 1.1] 
+Cd_vars = [0.9 0.95 1 1.05 1.1] ;
 if mode == 4
  
 %     for i = 1:length(Cd_vars)
 %         namelist{i} = ['Cd' num2words(Cd_vars(i)*100) '%'];
 %     end 
 if returnMode == 1
-namelist = {'CdNinety' 'CdNinetyFive' 'CdStandard' 'CdOneHundredFive' 'CdOneHundredTen'}
+namelist = {'CdNinety' 'CdNinetyFive' 'CdStandard' 'CdOneHundredFive' 'CdOneHundredTen'};
 else
-namelist = {'CdNinetyNoReturn' 'CdNinetyFiveNoReturn' 'CdStandardNoReturn' 'CdOneHundredFiveNoReturn' 'CdOneHundredTenNoReturn'}
+namelist = {'CdNinetyNoReturn' 'CdNinetyFiveNoReturn' 'CdStandardNoReturn' 'CdOneHundredFiveNoReturn' 'CdOneHundredTenNoReturn'};
 end
 end
 
 % Mode 5
-vCd_vars = [0.2 0.5 1 1.07 1.15]
+vCd_vars = [0.2 0.5 1 1.07 1.15];
 if mode == 5 
 %     for i = 1:length(vCd_vars)
 %         namelist{i} = ['vCd' num2words(vCd_vars(i)*100) '%'];
 %     end  
 if returnMode == 1
-namelist = {'vCdTwenty' 'vCdFifty' 'vCdStandard' 'vCdOneHundredSeven' 'vCdOneHundredFifteen'}
+namelist = {'vCdTwenty' 'vCdFifty' 'vCdStandard' 'vCdOneHundredSeven' 'vCdOneHundredFifteen'};
 else
-namelist = {'vCdTwentyNoReturn' 'vCdFiftyNoReturn' 'vCdStandardNoReturn' 'vCdOneHundredSevenNoReturn' 'vCdOneHundredFifteenNoReturn'}
+namelist = {'vCdTwentyNoReturn' 'vCdFiftyNoReturn' 'vCdStandardNoReturn' 'vCdOneHundredSevenNoReturn' 'vCdOneHundredFifteenNoReturn'};
 end
 end
     
 % Mode 6
 % First Stage Structural Mass (total mass kept constant)
-FirstStagem_vars = [0.90 0.95 1 1.05 1.1] 
+FirstStagem_vars = [0.90 0.95 1 1.05 1.1] ;
 if mode == 6 
 if returnMode == 1
-namelist = {'FirstStagemNinety' 'FirstStagemNinetyFive' 'FirstStagemStandard' 'FirstStagemOneHundredFive' 'FirstStagemOneHundredTen'}
+namelist = {'FirstStagemNinety' 'FirstStagemNinetyFive' 'FirstStagemStandard' 'FirstStagemOneHundredFive' 'FirstStagemOneHundredTen'};
 else
-namelist = {'FirstStagemNinetyNoReturn' 'FirstStagemNinetyFiveNoReturn' 'FirstStagemStandardNoReturn' 'FirstStagemOneHundredFiveNoReturn' 'FirstStagemOneHundredTenNoReturn'}
+namelist = {'FirstStagemNinetyNoReturn' 'FirstStagemNinetyFiveNoReturn' 'FirstStagemStandardNoReturn' 'FirstStagemOneHundredFiveNoReturn' 'FirstStagemOneHundredTenNoReturn'};
 end
 end
 
 % Mode 7
-Cd3_vars = [0.80 0.9 1 1.1 1.2]  
+Cd3_vars = [0.80 0.9 1 1.1 1.2]  ;
 if mode == 7
  if returnMode == 1
         namelist = {'CdThreeEighty' 'CdThreeNinety' 'CdThreeStandard' 'CdThreeOneHundredTen' 'CdThreeOneHundredTwenty'};
@@ -156,54 +134,54 @@ if mode == 7
 end   
    
 % Mode 8
-m3_vars = [0.9 0.95 1 1.05 1.1] 
+m3_vars = [0.9 0.95 1 1.05 1.1] ;
 if mode == 8 
 %     for i = 1:length(m3_vars)
 %         namelist{i} = ['m3' num2words(m3_vars(i)*100) '%'];
 %     end  
 if returnMode == 1
-namelist = {'mThreeNinety' 'mThreeNinetyFive' 'mThreeStandard' 'mThreeOneHundredFive' 'mThreeOneHundredTen'}
+namelist = {'mThreeNinety' 'mThreeNinetyFive' 'mThreeStandard' 'mThreeOneHundredFive' 'mThreeOneHundredTen'};
 else
-namelist = {'mThreeNinetyNoReturn' 'mThreeNinetyFiveNoReturn' 'mThreeStandardNoReturn' 'mThreeOneHundredFiveNoReturn' 'mThreeOneHundredTenNoReturn'}
+namelist = {'mThreeNinetyNoReturn' 'mThreeNinetyFiveNoReturn' 'mThreeStandardNoReturn' 'mThreeOneHundredFiveNoReturn' 'mThreeOneHundredTenNoReturn'};
 end
 end 
     
 % Mode 9
-Isp3_vars = [0.95 0.975 1 1.025 1.05]  
+Isp3_vars = [0.95 0.975 1 1.025 1.05];  
 if mode == 9
 %     for i = 1:length(Isp3_vars)
 %         namelist{i} = ['T3' num2words(Isp3_vars(i)*100) '%'];
 %     end 
 if returnMode == 1
-namelist = {'ISPThreeNinetyFive' 'ISPThreeNinetySevenFive' 'ISPThreeStandard' 'ISPThreeOneHundredTwoFive' 'ISPThreeOneHundredFive'}
+namelist = {'ISPThreeNinetyFive' 'ISPThreeNinetySevenFive' 'ISPThreeStandard' 'ISPThreeOneHundredTwoFive' 'ISPThreeOneHundredFive'};
 else
-namelist = {'ISPThreeNinetyFiveNoReturn' 'ISPThreeNinetySevenFiveNoReturn' 'ISPThreeStandardNoReturn' 'ISPThreeOneHundredTwoFiveNoReturn' 'ISPThreeOneHundredFiveNoReturn'}
+namelist = {'ISPThreeNinetyFiveNoReturn' 'ISPThreeNinetySevenFiveNoReturn' 'ISPThreeStandardNoReturn' 'ISPThreeOneHundredTwoFiveNoReturn' 'ISPThreeOneHundredFiveNoReturn'};
 end
 end  
     
 % mode 10
-mSPARTAN_vars = [0.95 0.975 1 1.025 1.05] 
+mSPARTAN_vars = [0.95 0.975 1 1.025 1.05] ;
 if mode == 10 
 %     for i = 1:length(mSPARTAN_vars)
 %         namelist{i} = ['mSPARTAN' num2words(mSPARTAN_vars(i)*100) '%'];
 %     end   
 if returnMode == 1
-namelist = {'mSPARTANNinetyFive' 'mSPARTANNinetySevenFive' 'mSPARTANStandard' 'mSPARTANOneHundredTwoFive' 'mSPARTANOneHundredFive'}
+namelist = {'mSPARTANNinetyFive' 'mSPARTANNinetySevenFive' 'mSPARTANStandard' 'mSPARTANOneHundredTwoFive' 'mSPARTANOneHundredFive'};
 else
-namelist = {'mSPARTANNinetyFiveNoReturn' 'mSPARTANNinetySevenFiveNoReturn' 'mSPARTANStandardNoReturn' 'mSPARTANOneHundredTwoFiveNoReturn' 'mSPARTANOneHundredFiveNoReturn'}
+namelist = {'mSPARTANNinetyFiveNoReturn' 'mSPARTANNinetySevenFiveNoReturn' 'mSPARTANStandardNoReturn' 'mSPARTANOneHundredTwoFiveNoReturn' 'mSPARTANOneHundredFiveNoReturn'};
 end
 end 
  
 %mode 11
-mFuel_vars = [0.9 0.95 1 1.05 1.1]     
+mFuel_vars = [0.9 0.95 1 1.05 1.1]     ;
 if mode == 11
 %     for i = 1:length(mFuel_vars)
 %         namelist{i} = ['mFuel' num2words(mFuel_vars(i)*100) '%'];
 %     end  
 if returnMode == 1
-namelist = {'mFuelNinety' 'mFuelNinetyFive' 'mFuelStandard' 'mFuelOneHundredFive' 'mFuelOneHundredTen'}
+namelist = {'mFuelNinety' 'mFuelNinetyFive' 'mFuelStandard' 'mFuelOneHundredFive' 'mFuelOneHundredTen'};
 else
-namelist = {'mFuelNinetyNoReturn' 'mFuelNinetyFiveNoReturn' 'mFuelStandardNoReturn' 'mFuelOneHundredFiveNoReturn' 'mFuelOneHundredTenNoReturn'}
+namelist = {'mFuelNinetyNoReturn' 'mFuelNinetyFiveNoReturn' 'mFuelStandardNoReturn' 'mFuelOneHundredFiveNoReturn' 'mFuelOneHundredTenNoReturn'};
 end
 
 end
@@ -225,57 +203,47 @@ lat0 = Mission.lat0; % Equatorial Launch Australia Spaceport near Nhulunbuy
 lon0 = Mission.lon0;
 
 
+%% Atmosphere Data %%======================================================
+% Fetch atmospheric data and compute interpolation splines.
+disp('|                 *  Importing Atmosphere Data    *                 |')
 
-%% Add Necessary Paths
+
+Atmosphere = dlmread('atmosphere.txt');
+auxdata.Atmosphere = Atmosphere;
+interp.Atmosphere = Atmosphere;
+auxdata.interp.Atmosphere = interp.Atmosphere;
+
+auxdata.interp.c_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,5)); % Calculate speed of sound using atmospheric data
+auxdata.interp.rho_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,4)); % Calculate density using atmospheric data
+auxdata.interp.p_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,3)); % Calculate density using atmospheric data
+auxdata.interp.T0_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,2)); 
+auxdata.interp.P0_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,3)); 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-addpath('..\EngineData')
-addpath('..\')
-addpath('.\Interpolators')
-addpath('.\Processing')
-addpath('.\Forward Simulations')
-addpath('.\Dynamics')
-addpath ('..\ViscousAero')
-addpath('..\CG15.1255') % Add folder containing aerodynamic datasets
+
+%%
+auxdata.Re   = 6371203.92;                     % Equatorial Radius of Earth (m)
+
+
+auxdata.A = Stage2.refA ; 
+
+
 
 
 %% FIRST STAGE
+disp('|                 *  Importing First Stage Data   *                 |')
 
 
- auxdata.Throttle = .7 % throttle the Merlin engine down by a modeant value, to enable easier pitchover
 
 % Aerodynamics File Path
 Aero = dlmread('FirstStageAero23.5262');
 
 
-%% Vehicle 
+auxdata.Stage1 = Stage1;
 
-% mRocket =21816; % total mass of scaled Falcon at 9.5m, note, this will not be the final total mass. Calculated using the method outlined in SIZING.docx
-mRocket =19569; % total mass of scaled Falcon at 8.5m, note, this will not be the final total mass. Calculated using the method outlined in SIZING.docx
-
-mEngine = 470; % Mass of Merlin 1C
-mFuel = 0.939*(mRocket-mEngine); % structural mass fraction calculated without engine
-mSpartan = 9819.11;
-
-% Thrust and Isp are modified with altitude through the formula: %
-% SL + (101325-P_atm)*Mod %
- 
-auxdata.Vehicle.T.SL = 555900; % Thrust from Falcon 1 users guide. 
-auxdata.Vehicle.T.Mod = 0.5518; % exit area calculated in SIZING.docx
-
-auxdata.Vehicle.Isp.SL = 275; % linear regression of SL and vacuum Isp. From encyclopaedia astronautica, backed up by falcon 1 users guide
-auxdata.Vehicle.Isp.Mod = 2.9410e-04;
-
-auxdata.Vehicle.Area = 62.77; 
-
-auxdata.Vehicle.CG = 23.5262; % centre of gravity (m) calculated in clicalcCGvar.m
-auxdata.Vehicle.L = 22.94+8.5;
-%% Import Atmosphere
-
-auxdata.Atmosphere = dlmread('atmosphere.txt');
 
 %% Calculate Aerodynamic Splines
+disp('|            * Interpolating First Stage Aerodynamics *             |')
 
 interp.Lift = scatteredInterpolant(Aero(:,1),Aero(:,2),Aero(:,3));
 interp.Drag = scatteredInterpolant(Aero(:,1),Aero(:,2),Aero(:,4));
@@ -296,8 +264,8 @@ auxdata.interp.LiftGridded = griddedInterpolant(grid.M,grid.AoA,grid.Lift,'splin
 auxdata.interp.DragGridded = griddedInterpolant(grid.M,grid.AoA,grid.Drag,'spline','linear');
 auxdata.interp.MomentGridded = griddedInterpolant(grid.M,grid.AoA,grid.Moment,'spline','linear');
 
-mTotal = mSpartan + mRocket;
-mEmpty = mRocket-mFuel;  %(kg)  %mass of the rocket (without fuel)
+mTotal = Stage2.mStruct+Stage2.mFuel+Stage3.mTot + Stage1.m;
+mEmpty = Stage1.m-Stage1.mFuel;  %(kg)  %mass of the rocket (without fuel)
 
 
 %% Assign Pitchover Conditions
@@ -308,7 +276,7 @@ v0 = 15;
 
 gamma0 = deg2rad(89.9);    % set pitchover amount (start flight angle). This pitchover is 'free' movement, and should be kept small. 
 
-mF = mEmpty+mSpartan;  %Assume that we use all of the fuel
+mF = mEmpty+Stage2.mStruct+Stage2.mFuel +Stage3.mTot;  %Assume that we use all of the fuel
 
 
 alpha0 = 0; %Set initial angle of attack to 0
@@ -355,9 +323,12 @@ uMax1 = [.0005];
 % time bound
 tfMax1 	    = 300;     % large upper bound; do not choose Inf
 		 
+%%
 %-------------------------------------------------------------------------%
 %---------- Provide Bounds and Guess in Each Phase of Problem ------------%
 %-------------------------------------------------------------------------%
+
+disp('|                *  Setting-Up First Stage States  *                |')
 
 bounds.phase(1).initialtime.lower = 0; % constrain initial time to 0
 bounds.phase(1).initialtime.upper = 0;
@@ -365,13 +336,15 @@ bounds.phase(1).initialtime.upper = 0;
 bounds.phase(1).finaltime.lower = 0;
 bounds.phase(1).finaltime.upper = tfMax1;
 
-bounds.phase(1).initialstate.lower = [h0, v0,  mF-1, gamma0, alpha0,  zetaMin, dalphadt2Min1, lat0, lon0 ];
+auxdata.States_ID1 = {'Altitude','Velocity','Mass','FPA','AoA','Heading','AoAdt','Latitude','Longitude'}; % Designate State Names
+
+bounds.phase(1).initialstate.lower = [h0, v0,  mF, gamma0, alpha0,  zetaMin, dalphadt2Min1, lat0, lon0 ];
 bounds.phase(1).initialstate.upper = [h0, v0, mMax1, gamma0, alpha0, zetaMax, dalphadt2Max1, lat0, lon0];
 
-bounds.phase(1).state.lower = [AltMin1, vMin1, mF-1, gammaMin1, alphaMin1, zetaMin, dalphadt2Min1, latMin, lonMin ];
+bounds.phase(1).state.lower = [AltMin1, vMin1, mF, gammaMin1, alphaMin1, zetaMin, dalphadt2Min1, latMin, lonMin ];
 bounds.phase(1).state.upper = [ AltMax1,  vMax1, mMax1, gammaMax1, alphaMax1, zetaMax, dalphadt2Max1, latMax, lonMax];
 
-bounds.phase(1).finalstate.lower = [AltMin1, vMin1, mF-1, gammaMin1, alphaMin1, zetaMin, dalphadt2Min1, latMin, lonMin ];
+bounds.phase(1).finalstate.lower = [AltMin1, vMin1, mF, gammaMin1, alphaMin1, zetaMin, dalphadt2Min1, latMin, lonMin ];
 bounds.phase(1).finalstate.upper = [ AltMax1,  vMax1, mMax1, gammaMax1, alphaMax1, zetaMax, dalphadt2Max1, latMax, lonMax];
 
 bounds.phase(1).control.lower = uMin1;
@@ -406,42 +379,13 @@ guess.phase(1).control = [0; 0];
 
 
 
-%% Atmosphere Data %%======================================================
-% Fetch atmospheric data and compute interpolation splines.
 
-Atmosphere = dlmread('atmosphere.txt');
-interp.Atmosphere = Atmosphere;
-auxdata.interp.Atmosphere = interp.Atmosphere;
-
-auxdata.interp.c_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,5)); % Calculate speed of sound using atmospheric data
-auxdata.interp.rho_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,4)); % Calculate density using atmospheric data
-auxdata.interp.p_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,3)); % Calculate density using atmospheric data
-auxdata.interp.T0_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,2)); 
-auxdata.interp.P0_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,3)); 
-
-
-
-%%
-auxdata.Re   = 6371203.92;                     % Equatorial Radius of Earth (m)
-auxdata.A = Stage2.refA ; 
-
-%% Third Stage Aerodynamic Data
-
-auxdata.Aero3 = dlmread('ThirdStageAeroCoeffs.txt');
-
-Aero3 = auxdata.Aero3;
-auxdata.interp.Drag_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,2),Aero3(:,5));
-% 
-auxdata.interp.Lift_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,2),Aero3(:,6));
-
-auxdata.interp.CP_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,2),Aero3(:,7));
-
-auxdata.interp.CN_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,2),Aero3(:,4));
-
-auxdata.interp.Max_AoA_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,4),Aero3(:,2));
 
 
 %% Conical Shock Data %%===================================================
+disp('|                 * Importing Conical Shock Data  *                 |')
+
+
 % Import conical shock data and create interpolation splines 
 shockdata = dlmread('ShockMat');
 [MList_EngineOn,AOAList_EngineOn] = ndgrid(unique(shockdata(:,1)),unique(shockdata(:,2)));
@@ -453,6 +397,9 @@ auxdata.interp.presgridded = griddedInterpolant(MList_EngineOn,AOAList_EngineOn,
 auxdata.interp.tempgridded = griddedInterpolant(MList_EngineOn,AOAList_EngineOn,temp_Grid,'spline','linear');
 
 %% Equivalence Ratio %%==========================================================
+disp('|                * Importing Scramjet Engine Data *                 |')
+
+
 % Import engine data
 auxdata.interp.engine_data = dlmread('ENGINEDATASORTED.txt');  % reads four columns; Mach no after conical shock, temp after conical shock, Isp, max equivalence ratio
 engine_data = auxdata.interp.engine_data;
@@ -496,6 +443,7 @@ auxdata.interp.eqGridded = griddedInterpolant(grid.Mgrid_eng,grid.T_eng,grid.eq_
 %% Isp data %-----------------------------------------
 
 %% Interpolate for Isp
+disp('|                 * Performing Isp Interpolation  *                 |')
 
 % The engine data set is arranged to as to be difficult to interpolate
 % effectively. Small imperfections in the interpolation scheme can have
@@ -661,6 +609,7 @@ auxdata.interp.IspGridded = griddedInterpolant(grid.Mgrid_eng,grid.T_eng,Isp_gri
 
 
 %% Aerodynamic Data
+disp('|           * Importing Scramjet Stage Aerodynamic Data *           |')
 
 % Fetch aerodynamic data and compute interpolation splines.
 % Calculate the flap deflection necessary for trim.
@@ -679,6 +628,10 @@ T_L = -1.327; % Thrust location in z, average (m), measured from CREO
 % Full of fuel, with third stage
 
 CG_z = (-0.1974*(4.9571e+03+1562) + 3300*0.547)/(4.9571e+03+1562+3300); % Centre of gravity location in z, calculated from Creo
+
+
+disp('|    * Creating and Interpolating Trimmed Aedoynamic Databases *    |')
+
 
 aero1.aero_EngineOff = importdata('SPARTANaero15.228');
 aero1.flapaero = importdata('SPARTANaeroFlaps15.228');
@@ -760,6 +713,7 @@ clear Viscousaero_EngineOff
 
 %% Import Bounds %%========================================================
 
+disp('|                * Setting-Up Second Stage States *                 |')
 
 aoaMin21 = 0;  aoaMax21 = 10*pi/180;
 
@@ -779,6 +733,8 @@ gammaMin21 = -0.5;
 gammaMax21 = deg2rad(15);
 
 % Primal Bounds
+auxdata.States_ID21 = {'Altitude', 'Longitude', 'Latitude','Velocity','FPA','Heading','AoA', 'Bank Angle','Fuel Mass'}; % Designate State Names
+
 bounds.phase(2).state.lower = [AltMin21, lonMin, latMin, vMin21, gammaMin21, zetaMin, aoaMin21, bankMin21, mFuelMin21];
 bounds.phase(2).state.upper = [AltMax21, lonMax, latMax, vMax21, deg2rad(15), zetaMax, aoaMax21, bankMax21, mFuelMax21];
 
@@ -848,6 +804,8 @@ bounds.eventgroup(2).upper = [zeros(1,9)];
 
 %% Flyback
 
+disp('|                 *  Setting-Up Fly-Back states   *                 |')
+
 AltMin22 = 10;  AltMax22 = MaxviscAlt21; % set maximum altitude bound to highest altitude provided in viscous database
 
 vMin22 = 10;        vMax22 = 5000;
@@ -871,6 +829,8 @@ bounds.phase(3).finaltime.upper = 4000;
 bounds.phase(3).initialstate.upper = [AltMax22, lonMax, latMax, vMax22, gammaMax22, zetaMax, aoaMax21, 0, mFuelMax, throttleMax];   
 
 % State Bounds
+auxdata.States_ID22 = {'Altitude', 'Longitude', 'Latitude','Velocity','FPA','Heading','AoA', 'Bank Angle','Fuel Mass','Throttle'}; % Designate State Names
+
 if returnMode == 0
 bounds.phase(3).state.lower = [AltMin22, lonMin, latMin, vMin22, gammaMin22, zetaMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
 bounds.phase(3).state.upper = [AltMax22, lonMax, latMax, vMax22, gammaMax22, zetaMax, aoaMax21, bankMax21, 1, throttleMax];
@@ -937,6 +897,26 @@ guess.phase(3).time    = tGuess;
 
 
 %% Third Stage
+%% Third Stage Aerodynamic Data
+disp('|            * Importing Third Stage Aerodynamic Data *             |')
+
+
+
+auxdata.Aero3 = dlmread('ThirdStageAeroCoeffs.txt');
+
+Aero3 = auxdata.Aero3;
+auxdata.interp.Drag_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,2),Aero3(:,5));
+% 
+auxdata.interp.Lift_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,2),Aero3(:,6));
+
+auxdata.interp.CP_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,2),Aero3(:,7));
+
+auxdata.interp.CN_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,2),Aero3(:,4));
+
+auxdata.interp.Max_AoA_interp3 = scatteredInterpolant(Aero3(:,1),Aero3(:,4),Aero3(:,2));
+
+%% Configure Third Stage States
+disp('|                 * Setting-Up Third Stage States *                 |')
 
 altMin3 = 30000;  altMax3 = 84000;
 if mode == 0
@@ -969,6 +949,8 @@ bounds.phase(4).finaltime.upper = 10000;
 bounds.phase(4).initialstate.lower = [altMin3,vMin3, 0,  auxdata.Stage3.mTot, aoaMin3, phiMin3, zetaMin3];
 bounds.phase(4).initialstate.upper = [altMax3, vMax3, gammaMax3, auxdata.Stage3.mTot, aoaMax3, phiMax3, zetaMax3];
 
+auxdata.States_ID3 = {'Altitude','Velocity','FPA', 'Mass', 'Aoa', 'Latitude','Heading'}; % Designate State Names
+
 bounds.phase(4).state.lower = [altMin3,vMin3, gammaMin3, 0, aoaMin3, phiMin3, zetaMin3];
 bounds.phase(4).state.upper = [altMax3, vMax3, gammaMax3, auxdata.Stage3.mTot, aoaMax3, phiMax3, zetaMax3];
 
@@ -985,6 +967,7 @@ bounds.phase(4).path.upper = [deg2rad(8), 0];
 bounds.eventgroup(4).lower = [zeros(1,7) 90000 0];
 bounds.eventgroup(4).upper = [zeros(1,6) 1000 566000 0];
 
+%% Third Stage Guess
 tGuess              = [0; 150];
 altGuess            = [35000; 60000];
 vGuess          = [2700; 6000];
@@ -1007,6 +990,7 @@ guess.phase(4).control = [0;0];
 guess.phase(4).time    = tGuess;
 
 %%
+disp('|                 *     Configuring GPOPS-2       *                 |')
 %-------------------------------------------------------------------------%
 %----------Provide Mesh Refinement Method and Initial Mesh ---------------%
 %-------------------------------------------------------------------------%
@@ -1036,7 +1020,7 @@ setup.auxdata                        = auxdata;
 setup.bounds                         = bounds;
 setup.guess                          = guess;
 setup.mesh                           = mesh;
-setup.displaylevel                   = 2;
+setup.displaylevel                   = 0;
 setup.nlp.solver                     = 'ipopt';
 setup.nlp.ipoptoptions.linear_solver = 'ma57';
 
@@ -1057,8 +1041,9 @@ setup.derivatives.dependencies      = 'full';
 %-------------------------------------------------------------------%
 
 %% Parallel Loop
+disp('|                * Setting-Up GPOPS-2 in Parallel *                 |')
 
-num_it = 4; % Define number of parallel iterations
+num_it = 3; % Define number of parallel iterations
 
 % Create variable setup structure
 %% for interaction testing
@@ -1274,36 +1259,22 @@ end
 
 parfor i = 1:num_it
     
-output_temp = gpops2(setup_par(i)); % Run GPOPS-2. Use setup for each parallel iteration.
-% 
-% % Run forward simulation for comparison between runs
-% % Extract states
-% alt22 = output_temp.result.solution.phase(3).state(:,1).';
-% lon22 = output_temp.result.solution.phase(3).state(:,2).';
-% lat22 = output_temp.result.solution.phase(3).state(:,3).';
-% v22 = output_temp.result.solution.phase(3).state(:,4).'; 
-% gamma22 = output_temp.result.solution.phase(3).state(:,5).'; 
-% zeta22 = output_temp.result.solution.phase(3).state(:,6).';
-% alpha22 = output_temp.result.solution.phase(3).state(:,7).';
-% eta22 = output_temp.result.solution.phase(3).state(:,8).';
-% mFuel22 = output_temp.result.solution.phase(3).state(:,9).'; 
-% time22 = output_temp.result.solution.phase(3).time.';
-% throttle22 = output_temp.result.solution.phase(3).state(:,10).';
-% 
-% 
-% % Return Forward
-% forward0 = [alt22(1),gamma22(1),v22(1),zeta22(1),lat22(1),lon22(1), mFuel22(1)];
-% [f_t, f_y] = ode45(@(f_t,f_y) VehicleModelReturn_forward(f_t, f_y,auxdata,ControlInterp(time22,alpha22,f_t),ControlInterp(time22,eta22,f_t),ThrottleInterp(time22,throttle22,f_t)),time22,forward0);
-% 
-% error(i) = (f_y(end,6) + lon22(end))^2 + (f_y(end,5) + lat22(end))^2;
-% error(i) = abs(mFuel22(end) - f_y(end,7));
+disp(strcat('|                * Initialising GPOPS-2 on Core_',' ', num2str(i),' *                 |'))
 
+
+
+output_temp = gpops2(setup_par(i)); % Run GPOPS-2. Use setup for each parallel iteration.
+
+
+disp(strcat('|              * Completed Run of GPOPS-2 on Core_',' ', num2str(i),' *               |'))
+
+
+% Compute State Error
 input_test = output_temp.result.solution;
 input_test.auxdata = auxdata;
 phaseout_test = CombinedContinuous(input_test);
 norm_error1 = [];
 for num = [1:6 9]
-% norm_error1(num,:) = (cumtrapz(output_temp.result.solution.phase(2).time,phaseout_test(2).dynamics(1:end,num)) + output_temp.result.solution.phase(2).state(1,num)- output_temp.result.solution.phase(2).state(:,num))./(max(output_temp.result.solution.phase(2).state(:,num))-min(output_temp.result.solution.phase(2).state(:,num)));
 Stage2_int = cumtrapz([output_temp.result.solution.phase(2).time(1):0.1:output_temp.result.solution.phase(2).time(end)],pchip(output_temp.result.solution.phase(2).time,phaseout_test(2).dynamics(1:end,num),[output_temp.result.solution.phase(2).time(1):0.1:output_temp.result.solution.phase(2).time(end)]))';
 norm_error1(num,:) = (interp1([output_temp.result.solution.phase(2).time(1):0.1:output_temp.result.solution.phase(2).time(end)],Stage2_int,output_temp.result.solution.phase(2).time)+ output_temp.result.solution.phase(2).state(1,num)- output_temp.result.solution.phase(2).state(:,num))./(max(output_temp.result.solution.phase(2).state(:,num))-min(output_temp.result.solution.phase(2).state(:,num)));
 
@@ -1311,7 +1282,6 @@ end
 norm_error2 = [];
 if returnMode == 1
 for num = [1:6 9]
-% norm_error2(num,:) = (cumtrapz(output_temp.result.solution.phase(3).time,phaseout_test(3).dynamics(1:end,num)) + output_temp.result.solution.phase(3).state(1,num)- output_temp.result.solution.phase(3).state(:,num))./(max(output_temp.result.solution.phase(3).state(:,num))-min(output_temp.result.solution.phase(3).state(:,num)));
 Return_int = cumtrapz([output_temp.result.solution.phase(3).time(1):0.1:output_temp.result.solution.phase(3).time(end)],pchip(output_temp.result.solution.phase(3).time,phaseout_test(3).dynamics(1:end,num),[output_temp.result.solution.phase(3).time(1):0.1:output_temp.result.solution.phase(3).time(end)]))';
 norm_error2(num,:) = (interp1([output_temp.result.solution.phase(3).time(1):0.1:output_temp.result.solution.phase(3).time(end)],Return_int,output_temp.result.solution.phase(3).time)+ output_temp.result.solution.phase(3).state(1,num)- output_temp.result.solution.phase(3).state(:,num))./(max(output_temp.result.solution.phase(3).state(:,num))-min(output_temp.result.solution.phase(3).state(:,num)));
 
@@ -1333,6 +1303,9 @@ end
 
 % [max_pl,index] = max(PayloadMass);% Calculate the result which maximises payload mass the chosen error function
 
+disp('|               * Determining Best GPOPS-2 Solution *               |')
+
+
 output{j} = output_store{index};
 
 % Clear output store to save memory and prevent write issues
@@ -1344,7 +1317,6 @@ end
 
 %% Process Results
 
-Plotter(output,auxdata,auxdata.mode,auxdata.returnMode,auxdata.namelist,M_englist,T_englist,engine_data,MList_EngineOn,AOAList_EngineOn,mRocket,mSpartan,mFuel,h0,v0,bounds);
 
 
 
@@ -1353,6 +1325,18 @@ Plotter(output,auxdata,auxdata.mode,auxdata.returnMode,auxdata.namelist,M_englis
 
 
 
+
+Plotter(output,auxdata,auxdata.mode,auxdata.returnMode,auxdata.namelist,M_englist,T_englist,engine_data,MList_EngineOn,AOAList_EngineOn,Stage1.m,Stage2.mStruct+Stage2.mFuel+Stage3.mTot ,Stage2.mFuel,h0,v0,bounds);
+
+
+
+
+
+
+
+disp('---------------------------------------------------------------------')
+disp('|                 *     LODESTAR Run Complete     *                 |')
+disp('---------------------------------------------------------------------')
 
 %% =========================================================================
 % Troubleshooting Procedure

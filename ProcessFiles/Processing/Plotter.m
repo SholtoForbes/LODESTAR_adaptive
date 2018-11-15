@@ -6,29 +6,29 @@
 
 function [] = Plotter(output,auxdata,mode,returnMode,namelist,M_englist,T_englist,engine_data,MList_EngineOn,AOAList_EngineOn,mRocket,mSpartan,mFuel,h0,v0,bounds)
 
-addpath('.\Processing\addaxis')
-addpath('.\Processing\axlabel')
-addpath('.\Processing\num2words')
-
-Timestamp = datestr(now,30)
-mkdir('../ArchivedResults', strcat(Timestamp, 'mode', num2str(mode),num2str(returnMode)))
 
 
-copyfile('CombinedProbGPOPS.m',sprintf('../ArchivedResults/%s/SecondStageProb.m',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))))
+Timestamp = datestr(now,30);
+
+mkdir('./ArchivedResults', strcat(Timestamp, 'mode', num2str(mode),num2str(returnMode)))
+
+
+copyfile('./ProcessFiles/CombinedProbGPOPS.m',sprintf('./ArchivedResults/%s/SecondStageProb.m',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))))
 
 save output
-movefile('output.mat',sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile('output.mat',sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
-% movefile(strcat('SPARTAN-CombinedIPOPTinfo.txt'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% movefile(strcat('SPARTAN-CombinedIPOPTinfo.txt'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
 % % Run multiple times if output has mutltiple cells
 if mode ~= 99
 for j = 1:length(output)
 
+disp('|                 *  Processing GPOPS-2 Results   *                 |')
 
-auxdata = output{j}.result.setup.auxdata
+auxdata = output{j}.result.setup.auxdata;
 
 % =========================================================================
 % Assign the primal variables
@@ -168,9 +168,9 @@ end
 
 [AltF_actual, v3F, altexo, v3exo, timeexo, mpayload, Alpha3, mexo,qexo,gammaexo,Dexo,zetaexo,latexo,incexo,Texo,CLexo,Lexo,incdiffexo,lonexo,dvtot3,m3_4,v3exo_coordchange,hs] = ThirdStageSim(alt3(end),gamma3(end),v3(end), lat3(end),lon3(end), zeta3(end), m3(end), auxdata);
 
-[~, ~, ~, ~, ~, mpayloadtest] = ThirdStageSim(alt3(end),gamma3(end),v3(end), lat3(end)-0.008,lon3(end), zeta3(end)+0.0005, m3(end), auxdata);
 
-payload_latdiff = mpayload-mpayloadtest
+
+
 
 % ThirdStagePayloadMass = -output{j}.result.objective;
 
@@ -181,10 +181,9 @@ ThirdStagePayloadMass = mpayload;
 %          OUTPUT             %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-nodes = length(alt21)
 
 [altdot21,xidot21,phidot21,gammadot21,a21,zetadot21, q21, M21, Fd21, rho21,L21,Fueldt21,T21,Isp21,q121,flapdeflection21,heating_rate21,CG21,T1,P1,M1,P021] = SPARTANDynamics(gamma21, alt21, v21,auxdata,zeta21,lat21,lon21,alpha21,eta21,1, mFuel21,mFuel21(1),mFuel21(end), 1, 0);
-q121
+
 [~,~,~,~,~,~, q22, M22, Fd22, rho22,L22,Fueldt22,T22,Isp22,q122,flapdeflection22,heating_rate22,CG22,T122,P122,M122,P022,Fueldt_max] = SPARTANDynamics(gamma22, alt22, v22,auxdata,zeta22,lat22,lon22,alpha22,eta22,throttle22, mFuel22,0,0, 0, 0);
 
 %% Modify throttle for return 
@@ -207,6 +206,31 @@ Isp22(q122<20000) = Isp22(q122<20000).*gaussmf(M22(q122<20000),[.1,5]); %
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % FORWARD SIMULATION
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+disp('|                 *  Running Forward Simulation   *                 |')
+
+
+%% First Stage
+
+interp = auxdata.interp;
+Throttle = auxdata.Stage1.Throttle;
+Vehicle = auxdata.Stage1;
+Atmosphere = auxdata.Atmosphere;
+
+
+ phase = 'postpitch';
+tspan = time1; 
+% postpitch0_f = [y(end,1) y(end,2) y(end,3) deg2rad(89.9) phi(1) zeta(1)]; % set mass
+postpitch0_f = [h0 v0 m1(1) deg2rad(89.9) lat1(1) zeta1(1)];
+
+[t_postpitch_f, postpitch_f] = ode45(@(t_f,postpitch_f) FirstStageDynamicsForward(postpitch_f,ControlFunction(t_f,time1,zeta1),ControlFunction(t_f,time1,alpha1),phase,interp,Throttle,Vehicle,Atmosphere,auxdata), tspan, postpitch0_f);
+
+
+forward_error1 = [(alt1'-postpitch_f(:,1))/(max(alt1)-min(alt1)) zeros(length(alt1),1)...
+    (lat1'-postpitch_f(:,5))/(max(lat1)-min(lat1)) (v1'-postpitch_f(:,2))/(max(v1)-min(v1))...
+    (gamma1'-postpitch_f(:,4))/(max(gamma1)-min(gamma1)) (zeta1'-postpitch_f(:,6))/(max(zeta1)-min(zeta1)) (m1'-postpitch_f(:,3))/(max(m1)-min(m1))];
+
+%% Second Stage
 
 % This is a full forward simulation, using the angle of attack and flap
 % deflection at each node.
@@ -255,7 +279,7 @@ plot(time21,mFuel21);
 
 
 
-% Return Forward
+%% Return
 forward0 = [alt22(1),gamma22(1),v22(1),zeta22(1),lat22(1),lon22(1), mFuel22(1)];
 % 
 % [f_t, f_y] = ode45(@(f_t,f_y) VehicleModelReturn_forward(f_t, f_y,auxdata,ControlInterp(time22,alpha22,f_t),ControlInterp(time22,eta22,f_t),ThrottleInterp(time22,throttle22,f_t)),time22(1):time22(end),forward0);
@@ -307,7 +331,269 @@ hold on
 plot(f_t2(1:end),f_y2(:,7));
 plot(time22,mFuel22);
 
+%%  Third Stage
+forward0 = [alt3(1),v3(1),gamma3(1),m3(1),lat3(1),zeta3(1)];
 
+[f_t, f_y] = ode45(@(f_t,f_y) VehicleModel3_forward(f_t, f_y,auxdata,ControlInterp(time3,aoa3,f_t),ControlInterp(time3,aoadot3,f_t)),time3(1:end),forward0);
+
+forward_error3 = [(alt3-f_y(:,1))/(max(alt3)-min(alt3)) zeros(length(alt3),0)...
+    (lat3-f_y(:,5))/(max(lat3)-min(lat3)) (v3-f_y(:,2))/(max(v3)-min(v3))...
+    (gamma3-f_y(:,3))/(max(gamma3)-min(gamma3)) (zeta3-f_y(:,6))/(max(zeta3)-min(zeta3)) (m3-f_y(:,4))/(max(m3)-min(m3))];
+
+
+
+
+%% Check KKT and pontryagins minimum
+% Check that the hamiltonian = 0 (for free end time)
+% Necessary condition
+input_test = output{j}.result.solution;
+input_test.auxdata = auxdata;
+phaseout_test = CombinedContinuous(input_test);
+
+% Calculate the Hamiltonian of the optimal control problem
+disp('|                 *     Checking Hamiltonian      *                 |')
+H1 = [];
+H2 = [];
+H3 = [];
+H4 = [];
+
+lambda1 = output{j}.result.solution.phase(1).costate;
+for i = 1:length(lambda1)-1
+    H1(i) = lambda1(i+1,:)*phaseout_test(1).dynamics(i,:).'; %H = lambda transpose * f(x,u,t) + L, note that there is no continuous cost L
+end
+
+lambda2 = output{j}.result.solution.phase(2).costate;
+for i = 1:length(lambda2)-1
+    H2(i) = lambda2(i+1,:)*phaseout_test(2).dynamics(i,:).'; %H = lambda transpose * f(x,u,t) + L, note that there is no continuous cost L
+end
+
+lambda3 = output{j}.result.solution.phase(3).costate;
+for i = 1:length(lambda3)-1
+    H3(i) = lambda3(i+1,:)*phaseout_test(3).dynamics(i,:).'; %H = lambda transpose * f(x,u,t) + L, note that there is no continuous cost L
+end
+
+lambda4 = output{j}.result.solution.phase(4).costate;
+for i = 1:length(lambda4)-1
+    H4(i) = lambda4(i+1,:)*phaseout_test(4).dynamics(i,:).'; %H = lambda transpose * f(x,u,t) + L, note that there is no continuous cost L
+end
+
+if max(H1)<0.5 && max(H2)<0.5 && max(H3)<0.5 && max(H4)<0.5 
+    
+disp('|                 *        Hamiltonian OK         *                 |')
+else
+    disp('|           * Hamiltonian Diverging - Check Optimality *            |') 
+end
+
+
+
+% Plot Hamiltonian
+
+figure(2410)
+
+subplot(2,2,1)
+hold on
+title('First Stage')
+plot(time1(1:end-1)-time1(1),H1);
+ylabel('Hamiltonian')
+xlabel('Time (s)')
+ylim([-1 1]);
+xlim([0 time1(end-1)-time1(1)]);
+
+subplot(2,2,2)
+hold on
+title('Second Stage Ascent')
+plot(time21(1:end-1)-time21(1),H2);
+ylabel('Hamiltonian')
+xlabel('Time (s)')
+ylim([-1 1]);
+xlim([0 time21(end-1)-time21(1)]);
+subplot(2,2,3)
+hold on
+title('Second Stage Return')
+plot(time22(1:end-1)-time22(1),H3);
+ylabel('Hamiltonian')
+xlabel('Time (s)')
+ylim([-1 1]);
+xlim([0 time22(end-1)-time22(1)]);
+subplot(2,2,4)
+hold on
+title('Third Stage')
+plot(time3(1:end-1)-time3(1),H4);
+ylabel('Hamiltonian')
+xlabel('Time (s)')
+ylim([-1 1]);
+xlim([0 time3(end-1)-time3(1)]);
+
+%% Check State Feasibility
+% Check calculated derivatives with the numerical derivative of each
+% primal, scaled by that primal
+
+disp('|                 *       Checking States         *                 |')
+
+figure(2420)
+fig = gcf;
+set(fig,'Position',[200 200 700 600]);
+hold on
+
+%suptitle('Dynamics Feasibility Check')
+
+for i = [1:6 9]
+    if i == 1
+        i1 = 1;
+    elseif i ==2
+        i1 = 9;
+   elseif i ==3
+        i1 = 8;
+   elseif i ==4
+        i1 = 2;
+   elseif i ==5
+        i1 = 4;
+   elseif i ==6
+        i1 = 6;
+   elseif i ==9
+        i1 = 3;
+    end
+   
+        
+    Stage1_int = cumtrapz(output{j}.result.solution.phase(1).time,phaseout_test(1).dynamics(1:end,i1));
+    Stage1_error = (Stage1_int+ output{j}.result.solution.phase(1).state(1,i1)- output{j}.result.solution.phase(1).state(:,i1))./(max(output{j}.result.solution.phase(1).state(:,i1))-min(output{j}.result.solution.phase(1).state(:,i1)));
+Stage2_int = cumtrapz([time21(1):0.1:time21(end)],pchip(output{j}.result.solution.phase(2).time,phaseout_test(2).dynamics(1:end,i),[time21(1):0.1:time21(end)]))';
+    Stage2_error = (interp1([time21(1):0.1:time21(end)],Stage2_int,time21)+ output{j}.result.solution.phase(2).state(1,i)- output{j}.result.solution.phase(2).state(:,i))./(max(output{j}.result.solution.phase(2).state(:,i))-min(output{j}.result.solution.phase(2).state(:,i)));
+
+if returnMode == 1
+Return_int = cumtrapz([time22(1):0.1:time22(end)],pchip(output{j}.result.solution.phase(3).time,phaseout_test(3).dynamics(1:end,i),[time22(1):0.1:time22(end)]))';
+    Return_error = (interp1([time22(1):0.1:time22(end)],Return_int,time22)+ output{j}.result.solution.phase(3).state(1,i)- output{j}.result.solution.phase(3).state(:,i))./(max(output{j}.result.solution.phase(3).state(:,i))-min(output{j}.result.solution.phase(3).state(:,i)));
+else
+ Return_error = 0;  
+end
+    
+    
+    if i == 1
+        i3 = 1;
+    elseif i ==2
+        i3 = 0;
+   elseif i ==3
+        i3 = 6;
+   elseif i ==4
+        i3 = 2;
+   elseif i ==5
+        i3 = 3;
+   elseif i ==6
+        i3 = 7;
+   elseif i ==9
+        i3 = 4;
+    end
+    
+    if i3 == 0
+        Stage3_error = zeros(length(time3),1);
+    else
+    Stage3_int = cumtrapz(output{j}.result.solution.phase(4).time,phaseout_test(4).dynamics(1:end,i3));
+    Stage3_error = (Stage3_int+ output{j}.result.solution.phase(4).state(1,i3)- output{j}.result.solution.phase(4).state(:,i3))./(max(output{j}.result.solution.phase(4).state(:,i3))-min(output{j}.result.solution.phase(4).state(:,i3)));
+
+    end
+
+    
+
+subplot(2,2,1)
+hold on
+title('First Stage')
+plot(time1',Stage1_error*100);
+ylabel('Integrated Error (%)')
+xlabel('Time (s)')
+ylim([-1 1]);
+xlim([0 time1(end)-time1(1)]);
+
+subplot(2,2,2)
+hold on
+title('Second Stage Ascent')
+plot(time21-time21(1),Stage2_error*100);
+ylabel('Integrated Error (%)')
+xlabel('Time (s)')
+ylim([-1 1]);
+xlim([0 time21(end)-time21(1)]);
+subplot(2,2,3)
+hold on
+title('Second Stage Return')
+plot(time22-time22(1),Return_error*100);
+ylabel('Integrated Error (%)')
+xlabel('Time (s)')
+ylim([-1 1]);
+xlim([0 time22(end)-time22(1)]);
+subplot(2,2,4)
+hold on
+title('Third Stage')
+plot(time3-time3(1),Stage3_error*100);
+ylabel('Integrated Error (%)')
+xlabel('Time (s)')
+ylim([-1 1]);
+xlim([0 time3(end)-time3(1)]);
+end
+
+
+if max(Stage1_error*100)<1 && max(Stage2_error*100)<1 && max(Return_error*100)<1 && max(Stage3_error*100)<1 
+    
+disp('|                 *          States OK            *                 |')
+else
+disp('|              * States Diverging - Check Optimality *              |') 
+end
+
+legend('Alt ','lon ','lat','v ','gamma ','zeta ','Mass');
+
+
+
+%% Bound Check
+
+disp('|                 *       Checking Bounds         *                 |')
+
+% Peform check to see if any of the states are hitting their bounds. This
+% is an error if the bound is not intended to constrain the state. Fuel
+% mass and throttle are not checked, as these will always hit bounds. 
+
+for i = 1: length(output{j}.result.solution.phase(2).state(1,:))
+    if any(output{j}.result.solution.phase(1).state(:,i) <= bounds.phase(1).state.lower(i))
+        disp(strcat('            -', auxdata.States_ID1{i},' in Phase 1 is hitting lower bound'))
+    end
+    
+    if any(output{j}.result.solution.phase(1).state(:,i) >= bounds.phase(1).state.upper(i))
+        disp(strcat('            -', auxdata.States_ID1{i},' in Phase 1 is hitting upper bound'))
+    end
+end
+
+for i = 1: length(output{j}.result.solution.phase(2).state(1,:))
+    if any(output{j}.result.solution.phase(2).state(:,i) <= bounds.phase(2).state.lower(i))
+        disp(strcat('            -', auxdata.States_ID21{i},' in Phase 2 is hitting lower bound'))
+    end
+    
+    if any(output{j}.result.solution.phase(2).state(:,i) >= bounds.phase(2).state.upper(i))
+        disp(strcat('            -', auxdata.States_ID21{i},' in Phase 2 is hitting upper bound'))
+    end
+end
+
+for i = 1: length(output{j}.result.solution.phase(3).state(1,:))
+    if any(output{j}.result.solution.phase(3).state(:,i) <= bounds.phase(3).state.lower(i))
+        disp(strcat('            -', auxdata.States_ID22{i},' in Phase 3 is hitting lower bound'))
+    end
+    
+    if any(output{j}.result.solution.phase(3).state(:,i) >= bounds.phase(3).state.upper(i))
+        disp(strcat('            -', auxdata.States_ID22{i},' in Phase 3 is hitting upper bound'))
+    end
+end
+
+% Angle of attack is not checked on third stage, because angle of attack is hard constrained and should be checked manually. 
+for i = 1:length(output{j}.result.solution.phase(4).state(1,:))
+    if any(output{j}.result.solution.phase(4).state(:,i) <= bounds.phase(4).state.lower(i))
+        disp(strcat('            -', auxdata.States_ID3{i},' in Phase 4 is hitting lower bound'))
+    end
+    
+    if any(output{j}.result.solution.phase(4).state(:,i) >= bounds.phase(4).state.upper(i))
+        disp(strcat('            -', auxdata.States_ID3{i},' in Phase 4 is hitting upper bound'))
+    end
+end
+
+
+%% Visualise Trajectory ---------------------------------------------------
+
+disp('|                 *    Visualising Trajectory     *                 |')
 
 %% plot Ascent
 addpath('addaxis')
@@ -502,233 +788,7 @@ ThirdStageFlag = [ones(length(time21),1); zeros(length(time22),1)];
 SecondStageStates = [[time21; time22] [alt21; alt22] [M21;M22] [lon21; lon22] [lat21; lat22] [v21; v22] [gamma21; gamma22] [zeta21; zeta22] [alpha21; alpha22] [eta21; eta22] [mFuel21; mFuel22] [flapdeflection21; flapdeflection22] [L21_act; L22_act]/1000 [Fd21_act; Fd22_act]/1000 [T21_act; T22_act]/1000 [Isp21; Isp22] ThirdStageFlag];
 dlmwrite(strcat('SecondStageStates',namelist{j}),['time (s) ' 'altitude (m) ' 'Mach ' 'longitude (rad) ' 'latitude (rad) ' 'velocity (m/s) ' 'trajectory angle (rad) ' 'heading angle (rad) ' 'angle of attack (rad) ' 'bank angle (rad) ' 'fuel mass (kg) ' 'Flap Deflection (deg) ' 'Lift (kN) ' 'Drag (kN) ' 'Thrust (kN) ' 'Isp (s) ' 'Third Stage (flag)'],'');
 dlmwrite(strcat('SecondStageStates',namelist{j}),SecondStageStates,'-append','delimiter',' ');
-movefile(strcat('SecondStageStates',namelist{j}),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-
-
-%% Check KKT and pontryagins minimum
-% Check that the hamiltonian = 0 (for free end time)
-% Necessary condition
-input_test = output{j}.result.solution;
-input_test.auxdata = auxdata;
-phaseout_test = CombinedContinuous(input_test);
-
-H1 = [];
-H2 = [];
-H3 = [];
-H4 = [];
-
-lambda1 = output{j}.result.solution.phase(1).costate;
-for i = 1:length(lambda1)-1
-    H1(i) = lambda1(i+1,:)*phaseout_test(1).dynamics(i,:).'; %H = lambda transpose * f(x,u,t) + L, note that there is no continuous cost L
-end
-
-lambda2 = output{j}.result.solution.phase(2).costate;
-for i = 1:length(lambda2)-1
-    H2(i) = lambda2(i+1,:)*phaseout_test(2).dynamics(i,:).'; %H = lambda transpose * f(x,u,t) + L, note that there is no continuous cost L
-end
-
-lambda3 = output{j}.result.solution.phase(3).costate;
-for i = 1:length(lambda3)-1
-    H3(i) = lambda3(i+1,:)*phaseout_test(3).dynamics(i,:).'; %H = lambda transpose * f(x,u,t) + L, note that there is no continuous cost L
-end
-
-lambda4 = output{j}.result.solution.phase(4).costate;
-for i = 1:length(lambda4)-1
-    H4(i) = lambda4(i+1,:)*phaseout_test(4).dynamics(i,:).'; %H = lambda transpose * f(x,u,t) + L, note that there is no continuous cost L
-end
-
-figure(2410)
-% hold on
-% plot(time1(1:end-1),H1)
-% plot(time21(1:end-1),H2)
-% plot(time22(1:end-1),H3)
-% plot(time3(1:end-1),H4)
-% ylabel('Hamiltonian')
-% xlabel('Time (s)')
-% legend('First Stage Stage Ascent','Second Stage Ascent','Second Stage Return','Third Stage Powered Ascent')
-
-
-
-
-subplot(2,2,1)
-hold on
-title('First Stage')
-plot(time1(1:end-1)-time1(1),H1);
-ylabel('Hamiltonian')
-xlabel('Time (s)')
-ylim([-1 1]);
-xlim([0 time1(end-1)-time1(1)]);
-
-subplot(2,2,2)
-hold on
-title('Second Stage Ascent')
-plot(time21(1:end-1)-time21(1),H2);
-ylabel('Hamiltonian')
-xlabel('Time (s)')
-ylim([-1 1]);
-xlim([0 time21(end-1)-time21(1)]);
-subplot(2,2,3)
-hold on
-title('Second Stage Return')
-plot(time22(1:end-1)-time22(1),H3);
-ylabel('Hamiltonian')
-xlabel('Time (s)')
-ylim([-1 1]);
-xlim([0 time22(end-1)-time22(1)]);
-subplot(2,2,4)
-hold on
-title('Third Stage')
-plot(time3(1:end-1)-time3(1),H4);
-ylabel('Hamiltonian')
-xlabel('Time (s)')
-ylim([-1 1]);
-xlim([0 time3(end-1)-time3(1)]);
-
-%% Check State Feasibility
-% Check calculated derivatives with the numerical derivative of each
-% porimal, scaled by that primal
-
-% for i = 1:length(output{j}.result.solution.phase(2).state(1,:))
-% plot(time21(1:end-1),([diff(output{j}.result.solution.phase(2).state(:,i))./diff(output{j}.result.solution.phase(2).time)] - phaseout_test(2).dynamics(1:end-1,i))./max(abs(phaseout_test(2).dynamics(1:end-1,i))),'--');
-% end
-% for i = 1:length(output{j}.result.solution.phase(3).state(1,:))
-%     if i<= 7 % Plot different line styles when no. of colours exceeded
-%     plot(time22(1:end-1),([diff(output{j}.result.solution.phase(3).state(:,i))./diff(output{j}.result.solution.phase(3).time)] - phaseout_test(3).dynamics(1:end-1,i))./max(abs(phaseout_test(3).dynamics(1:end-1,i))));
-%     else
-%     plot(time22(1:end-1),([diff(output{j}.result.solution.phase(3).state(:,i))./diff(output{j}.result.solution.phase(3).time)] - phaseout_test(3).dynamics(1:end-1,i))./max(abs(phaseout_test(3).dynamics(1:end-1,i))),':');
-%     end
-% end
-
-% 
-% for i = 1:length(output{j}.result.solution.phase(2).state(1,:))
-% plot(time21(1:end),(cumtrapz(output{j}.result.solution.phase(2).time,phaseout_test(2).dynamics(1:end,i)) + output{j}.result.solution.phase(2).state(1,i)- output{j}.result.solution.phase(2).state(:,i))./(max(output{j}.result.solution.phase(2).state(:,i))),'--');
-% end
-% for i = 1:length(output{j}.result.solution.phase(3).state(1,:))
-%     if i<= 7 % Plot different line styles when no. of colours exceeded
-%     plot(time22(1:end),(cumtrapz(output{j}.result.solution.phase(3).time,phaseout_test(3).dynamics(1:end,i)) + output{j}.result.solution.phase(3).state(1,i)- output{j}.result.solution.phase(3).state(:,i))./(max(output{j}.result.solution.phase(3).state(:,i))),'-');
-%     else
-%     plot(time22(1:end),(cumtrapz(output{j}.result.solution.phase(3).time,phaseout_test(3).dynamics(1:end,i)) + output{j}.result.solution.phase(3).state(1,i)- output{j}.result.solution.phase(3).state(:,i))./(max(output{j}.result.solution.phase(3).state(:,i))),':');
-%     end
-% end
-
-figure(2420)
-fig = gcf;
-set(fig,'Position',[200 200 700 600]);
-hold on
-
-%suptitle('Dynamics Feasibility Check')
-
-for i = [1:6 9]
-    if i == 1
-        i1 = 1;
-    elseif i ==2
-        i1 = 9;
-   elseif i ==3
-        i1 = 8;
-   elseif i ==4
-        i1 = 2;
-   elseif i ==5
-        i1 = 4;
-   elseif i ==6
-        i1 = 6;
-   elseif i ==9
-        i1 = 3;
-    end
-   
-        
-    Stage1_int = cumtrapz(output{j}.result.solution.phase(1).time,phaseout_test(1).dynamics(1:end,i1));
-    Stage1_error = (Stage1_int+ output{j}.result.solution.phase(1).state(1,i1)- output{j}.result.solution.phase(1).state(:,i1))./(max(output{j}.result.solution.phase(1).state(:,i1))-min(output{j}.result.solution.phase(1).state(:,i1)));
-%     Stage1_int = cumtrapz([time1(1):0.1:time1(end)],pchip(output{j}.result.solution.phase(1).time,phaseout_test(1).dynamics(1:end,i),[time1(1):0.1:time1(end)]))';
-%     Stage1_error = (interp1([time1(1):0.1:time1(end)],Stage1_int,time1)'+ output{j}.result.solution.phase(1).state(1,i)- output{j}.result.solution.phase(1).state(:,i))./(max(output{j}.result.solution.phase(1).state(:,i))-min(output{j}.result.solution.phase(1).state(:,i)));
-
-%     Stage2_int = cumtrapz(output{j}.result.solution.phase(2).time,phaseout_test(2).dynamics(1:end,i));
-%    Stage2_error = (Stage2_int+ output{j}.result.solution.phase(2).state(1,i)- output{j}.result.solution.phase(2).state(:,i))./(max(output{j}.result.solution.phase(2).state(:,i))-min(output{j}.result.solution.phase(2).state(:,i)));
-Stage2_int = cumtrapz([time21(1):0.1:time21(end)],pchip(output{j}.result.solution.phase(2).time,phaseout_test(2).dynamics(1:end,i),[time21(1):0.1:time21(end)]))';
-    Stage2_error = (interp1([time21(1):0.1:time21(end)],Stage2_int,time21)+ output{j}.result.solution.phase(2).state(1,i)- output{j}.result.solution.phase(2).state(:,i))./(max(output{j}.result.solution.phase(2).state(:,i))-min(output{j}.result.solution.phase(2).state(:,i)));
-%     Return_int = cumtrapz(output{j}.result.solution.phase(3).time,phaseout_test(3).dynamics(1:end,i));
-%     Return_error = (Return_int+ output{j}.result.solution.phase(3).state(1,i)- output{j}.result.solution.phase(3).state(:,i))./(max(output{j}.result.solution.phase(3).state(:,i))-min(output{j}.result.solution.phase(3).state(:,i)));
-
-if returnMode == 1
-Return_int = cumtrapz([time22(1):0.1:time22(end)],pchip(output{j}.result.solution.phase(3).time,phaseout_test(3).dynamics(1:end,i),[time22(1):0.1:time22(end)]))';
-    Return_error = (interp1([time22(1):0.1:time22(end)],Return_int,time22)+ output{j}.result.solution.phase(3).state(1,i)- output{j}.result.solution.phase(3).state(:,i))./(max(output{j}.result.solution.phase(3).state(:,i))-min(output{j}.result.solution.phase(3).state(:,i)));
-else
- Return_error = 0;  
-end
-    
-    
-    if i == 1
-        i3 = 1;
-    elseif i ==2
-        i3 = 0;
-   elseif i ==3
-        i3 = 6;
-   elseif i ==4
-        i3 = 2;
-   elseif i ==5
-        i3 = 3;
-   elseif i ==6
-        i3 = 7;
-   elseif i ==9
-        i3 = 4;
-    end
-    
-    if i3 == 0
-        Stage3_error = zeros(length(time3),1);
-    else
-    Stage3_int = cumtrapz(output{j}.result.solution.phase(4).time,phaseout_test(4).dynamics(1:end,i3));
-    Stage3_error = (Stage3_int+ output{j}.result.solution.phase(4).state(1,i3)- output{j}.result.solution.phase(4).state(:,i3))./(max(output{j}.result.solution.phase(4).state(:,i3))-min(output{j}.result.solution.phase(4).state(:,i3)));
-    
-%     Stage3_int = cumtrapz([time3(1):0.1:time3(end)],pchip(output{j}.result.solution.phase(4).time,phaseout_test(4).dynamics(1:end,i),[time3(1):0.1:time3(end)]))';
-%     Stage3_error = (interp1([time3(1):0.1:time3(end)],Stage3_int,time3)+ output{j}.result.solution.phase(4).state(1,i)- output{j}.result.solution.phase(4).state(:,i))./(max(output{j}.result.solution.phase(4).state(:,i))-min(output{j}.result.solution.phase(4).state(:,i)));
-
-    end
-
-    
-% plot([time1'; time21 ;time22; time3],[Stage1_error;Stage2_error; Return_error;Stage3_error]);
-
-
-subplot(2,2,1)
-hold on
-title('First Stage')
-plot(time1',Stage1_error*100);
-ylabel('Integrated Error (%)')
-xlabel('Time (s)')
-ylim([-1 1]);
-xlim([0 time1(end)-time1(1)]);
-
-subplot(2,2,2)
-hold on
-title('Second Stage Ascent')
-plot(time21-time21(1),Stage2_error*100);
-ylabel('Integrated Error (%)')
-xlabel('Time (s)')
-ylim([-1 1]);
-xlim([0 time21(end)-time21(1)]);
-subplot(2,2,3)
-hold on
-title('Second Stage Return')
-plot(time22-time22(1),Return_error*100);
-ylabel('Integrated Error (%)')
-xlabel('Time (s)')
-ylim([-1 1]);
-xlim([0 time22(end)-time22(1)]);
-subplot(2,2,4)
-hold on
-title('Third Stage')
-plot(time3-time3(1),Stage3_error*100);
-ylabel('Integrated Error (%)')
-xlabel('Time (s)')
-ylim([-1 1]);
-xlim([0 time3(end)-time3(1)]);
-end
-
-
-
-
-% ylim([-1,1])
-% legend('Alt Ascent','lon Ascent','lat Ascent','v Ascent','gamma Ascent','zeta Ascent','aoa Ascent','bank Ascent','mFuel Ascent', 'Alt Descent','lon Descent','lat Descent','v Descent','gamma Descent','zeta Descent','aoa Descent','bank Descent','mFuel Descent','throttle Descent')
-legend('Alt ','lon ','lat','v ','gamma ','zeta ','Mass');
-
+movefile(strcat('SecondStageStates',namelist{j}),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 %% Plot Heating Rate
 
@@ -756,7 +816,11 @@ T02 = spline( auxdata.interp.Atmosphere(:,1),  auxdata.interp.Atmosphere(:,2), a
 T2_in1 = auxdata.interp.tempgridded(M22,rad2deg(alpha22)).*T02;
 M2_in1 = auxdata.interp.M1gridded(M22, rad2deg(alpha22));
 
-IspPlot = 0
+
+%% Plot Isp Contours 
+
+% Toggle (takes a long time to process)
+IspPlot = 0;
 if IspPlot == 1
 
 figure(2100)
@@ -771,8 +835,6 @@ caxis([.4 1])
 plot(M_in1,T_in1,'r');
 
 error_Isp = auxdata.interp.IspGridded(engine_data(:,1),engine_data(:,2))-engine_data(:,3);
-% error_Isp =  polyvaln(auxdata.interp.Isppoly,[engine_data(:,1),engine_data(:,2)])-engine_data(:,3)
-
 
 figure(2110)
 hold on
@@ -828,28 +890,6 @@ end
 %% ThirdStage
 
 
-forward0 = [alt3(1),v3(1),gamma3(1),m3(1),lat3(1),zeta3(1)];
-
-% [f_t, f_y] = ode45(@(f_t,f_y) ForwardSim(f_y,AlphaInterp(t,Alpha,f_t),communicator,communicator_trim,SPARTAN_SCALE,Atmosphere,mode,scattered),t,forward0);
-[f_t, f_y] = ode45(@(f_t,f_y) VehicleModel3_forward(f_t, f_y,auxdata,ControlInterp(time3,aoa3,f_t),ControlInterp(time3,aoadot3,f_t)),time3(1:end),forward0);
-
-% [rdot3,xidot3,phidot3,gammadot3,vdot3,zetadot3, mdot3, Vec_angle3, AoA_max3, T3, L3, D3, q3] = ThirdStageDynamics(alt3,gamma3,v3,m3,aoa3,time3,auxdata,aoadot3,lat3,zeta3);
-
-% lon3 = [];
-% lon3(1) = lon21(end);
-% for i = 2:length(time3)
-%     lon3(i) = lon3(i-1) + xidot3(i-1)*(time3(i)-time3(i-1));
-% end
-
-
-% [AltF_actual, v3F, altexo, v3exo, timeexo, mpayload, Alpha3, mexo,qexo,gammaexo,Dexo,zetaexo,latexo,incexo,Texo,CLexo,Lexo,incdiffexo,lonexo] = ThirdStageSim(alt3(end),gamma3(end),v3(end), lat3(end),lon3(end), zeta3(end), m3(end), auxdata);
-
-
-forward_error3 = [(alt3-f_y(:,1))/(max(alt3)-min(alt3)) zeros(length(alt3),0)...
-    (lat3-f_y(:,5))/(max(lat3)-min(lat3)) (v3-f_y(:,2))/(max(v3)-min(v3))...
-    (gamma3-f_y(:,3))/(max(gamma3)-min(gamma3)) (zeta3-f_y(:,6))/(max(zeta3)-min(zeta3)) (m3-f_y(:,4))/(max(m3)-min(m3))];
-
-
 
 figure(312)
 hold on
@@ -862,84 +902,18 @@ plot(f_t(1:end),f_y(:,2));
 plot(time3,v3);
 
 
-
-% figure(311)
-%     fig = gcf;
-% set(fig,'Position',[200 0 850 650])
-% %%suptitle('Third Stage Trajectory');
-%     hold on
-%     
-%     subplot(4,2,1)
-%     hold on
-%     title('Altitude (km','FontSize',9);
-%     plot([time3; timeexo.'+time3(end)], [alt3; altexo.']/1000,'Color','k')
-%     xlim([time3(1) timeexo(end)+time3(end)])
-% set(gca,'xticklabels',[])
-%     subplot(4,2,2)
-%     hold on
-%     title('Dynamic Pressure (kPa','FontSize',9);
-%     plot([time3; timeexo.'+time3(end)],[q3;qexo.';qexo(end)]/1000,'Color','k')
-%     xlim([time3(1) timeexo(end)+time3(end)])
-% set(gca,'xticklabels',[])
-%     subplot(4,2,3)
-%     hold on
-%     title('Angle of Attack (deg)','FontSize',9);
-%     plot([time3; timeexo.'+time3(end)],[rad2deg(aoa3);0*ones(length(timeexo),1)],'Color','k')
-%     xlim([time3(1) timeexo(end)+time3(end)])
-% set(gca,'xticklabels',[])
-%     subplot(4,2,4)
-%     hold on
-%     title('Velocity (m/s)','FontSize',9);
-%     plot([time3; timeexo.'+time3(end)],[v3;v3exo.'],'Color','k')
-%     xlim([time3(1) timeexo(end)+time3(end)])
-% set(gca,'xticklabels',[])
-%     subplot(4,2,5)
-%     hold on
-%     title('Mass (kg)','FontSize',9);
-%     plot([time3; timeexo.'+time3(end)],[ m3;mexo.';mexo(end)],'Color','k')
-%     xlim([time3(1) timeexo(end)+time3(end)])
-% set(gca,'xticklabels',[])
-%     subplot(4,2,6)
-%     hold on
-%     title('Thrust Vector Angle (deg)','FontSize',9);
-%     plot([time3; timeexo.'+time3(end)],[rad2deg(Vec_angle3);0*ones(length(timeexo),1)],'Color','k')
-%     xlabel('Time (s)','FontSize',9);
-%     xlim([time3(1) timeexo(end)+time3(end)])
-% set(gca,'xticklabels',[])
-%     subplot(4,2,7)
-%     hold on
-%     title('Thrust','FontSize',9);
-%     plot([time3], [T3],'Color','k')
-% 
-%     xlabel('Time (s)','FontSize',9);
-%     xlim([time3(1) timeexo(end)+time3(end)])
-%     subplot(4,2,8)
-%     hold on
-%     title('Drag','FontSize',9);
-%     plot([time3], [D3],'Color','k')
-% 
-%     xlabel('Time (s)','FontSize',9);
-%     xlim([time3(1) timeexo(end)+time3(end)])
-%     
-    
-    
  figure(311)
  fig = gcf;
 set(fig,'Position',[200 0 850 720])
 hold on
-% %suptitle('Second Stage Ascent')
 subplot(3,1,1)
-% set(gca,'xticklabels',[])
 hold on
 xlim([0 timeexo(end).'+time3(end)-time3(1)]);
  plot([time3-time3(1); timeexo.'+time3(end)-time3(1)],[alt3; altexo.']/1000,'-','color','k', 'linewidth', 1.);
-% ylim([-30,40]);
+
 ylabel('altitude(km)');
 addaxis([time3-time3(1) ; timeexo.'+time3(end)-time3(1)],[v3;v3exo.']/1000,'--','color','k', 'linewidth', 1.);
 addaxislabel(2,'Velocity (km/s)');
-
-% addaxis(time,fpa,':','color','k', 'linewidth', 1.);
-% addaxislabel(3,'Trajectory Angle (deg)');
 
 
 addaxis([time3-time3(1); timeexo.'+time3(end)-time3(1)],[q3;qexo.';qexo(end)]/1000,':','color','k', 'linewidth', 1.2);
@@ -990,7 +964,7 @@ xlabel('Time (s)');
     % Write data to file
     dlmwrite(strcat('ThirdStageStates',namelist{j}),['time (s) ' 'altitude (m) ' 'velocity (m/s) ' 'mass (kg) ' 'dynamic pressure (Pa)' 'trajectory angle (rad) ' 'Lift (N)' 'Drag (N)' 'heading angle (rad) ' 'latitude (rad) ' 'angle of attack (rad) '],'');
     dlmwrite(strcat('ThirdStageStates',namelist{j}),[[time3; time3(end)+timeexo'], [alt3; altexo'], [v3; v3exo'], [m3; mexo'; mexo(end)],[q3; qexo'; qexo(end)] ,[gamma3; gammaexo'],[L3; Lexo'; Lexo(end)],[D3; Dexo'; Dexo(end)] ,[zeta3; zetaexo'], [lat3; latexo'], [aoa3; zeros(length(timeexo),1)]],'-append','delimiter',' ')
-movefile(strcat('ThirdStageStates',namelist{j}),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('ThirdStageStates',namelist{j}),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 % 
 %% First Stage =========================================================
@@ -1003,42 +977,26 @@ FirstStageStates = [time1' alt1' v1' m1' gamma1' alpha1' zeta1' lat1' lon1'];
 
 dlmwrite(strcat('FirstStageStates',namelist{j}),['time (s) ' 'altitude (m) ' 'velocity (m/s) ' 'mass (kg)' 'trajectory angle (rad) ' 'angle of attack (rad) ' 'heading angle (rad) ' 'latitude (rad)'  'longitude (rad)'],'');
 dlmwrite(strcat('FirstStageStates',namelist{j}),FirstStageStates,'-append','delimiter',' ');
-movefile(strcat('FirstStageStates',namelist{j}),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('FirstStageStates',namelist{j}),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
 % Iterative Prepitch Determination ========================================
 %This back determines the mass and launch altitude necessary to get to
 %100m, 30m/s at the PS method determined fuel mass
 
-interp = auxdata.interp;
-Throttle = auxdata.Throttle;
-Vehicle = auxdata.Vehicle;
-Atmosphere = auxdata.Atmosphere;
 
-% ntoe that launch altitude does vary, but it should only be slightly
-controls = fminunc(@(controls) prepitch(controls,m1(1),interp,Throttle,Vehicle,Atmosphere,auxdata),[-50,10]);
 
-h_launch = controls(1)
-t_prepitch = controls(2)
-Isp1 = Vehicle.Isp.SL;
-T1 = Vehicle.T.SL*Throttle;
+options.Display = 'off';
+% note that launch altitude does vary, but it should only be slightly
+controls = fminunc(@(controls) prepitch(controls,m1(1),interp,Throttle,Vehicle,Atmosphere,auxdata),[-50,10],options);
+
+h_launch = controls(1);
+t_prepitch = controls(2);
+Isp1 = auxdata.Stage1.IspSL;
+T1 = auxdata.Stage1.TSL*Throttle;
 dm1 = -T1./Isp1./9.81;
 m0_prepitch = m1(1) - dm1*t_prepitch;
 
-
-
-%% Forward Integrator
- phase = 'postpitch';
-tspan = time1; 
-% postpitch0_f = [y(end,1) y(end,2) y(end,3) deg2rad(89.9) phi(1) zeta(1)]; % set mass
-postpitch0_f = [h0 v0 m1(1) deg2rad(89.9) lat1(1) zeta1(1)];
-
-[t_postpitch_f, postpitch_f] = ode45(@(t_f,postpitch_f) FirstStageDynamicsForward(postpitch_f,ControlFunction(t_f,time1,zeta1),ControlFunction(t_f,time1,alpha1),phase,interp,Throttle,Vehicle,Atmosphere,auxdata), tspan, postpitch0_f);
-
-
-forward_error1 = [(alt1'-postpitch_f(:,1))/(max(alt1)-min(alt1)) zeros(length(alt1),1)...
-    (lat1'-postpitch_f(:,5))/(max(lat1)-min(lat1)) (v1'-postpitch_f(:,2))/(max(v1)-min(v1))...
-    (gamma1'-postpitch_f(:,4))/(max(gamma1)-min(gamma1)) (zeta1'-postpitch_f(:,6))/(max(zeta1)-min(zeta1)) (m1'-postpitch_f(:,3))/(max(m1)-min(m1))];
 
 
 figure(103)
@@ -1064,61 +1022,11 @@ y0 = [h0_prepitch, v0_prepitch, m0_prepitch, gamma0_prepitch, 0, 0, 0, 0, 0];
 [t_prepitch, y] = ode45(@(t,y) FirstStageDynamics(y,0,0,phase,interp,Throttle,Vehicle,Atmosphere,auxdata), tspan2, y0);  
 
 
-% figure(111);
-% hold on
-% %%suptitle('First Stage Trajectory');
-%     fig = gcf;
-% set(fig,'Position',[200 0 850 600])
-% subplot(4,2,1)
-% hold on
-% title('Trajectory Angle (deg)');
-% xlim([0 time1(end)+t_prepitch(end)]);
-% plot([t_prepitch.' time1+t_prepitch(end)], [rad2deg(y(:,4).') rad2deg(gamma1)],'color','k');
-% subplot(4,2,2)
-% hold on
-% title('Velocity (m/s)');
-% xlim([0 time1(end)+t_prepitch(end)]);
-% plot([t_prepitch.' time1+t_prepitch(end)], [y(:,2).' v1],'color','k');
-% subplot(4,2,3)
-% hold on
-% title('Altitude (km)');
-% xlim([0 time1(end)+t_prepitch(end)]);
-% plot([t_prepitch.' time1+t_prepitch(end)], [y(:,1).'/1000 alt1/1000],'color','k');
-% subplot(4,2,4)
-% hold on
-% title('Angle of Attack (deg)');
-% xlim([0 time1(end)+t_prepitch(end)]);
-% plot([t_prepitch.' time1+t_prepitch(end)], [zeros(1,length(t_prepitch)) rad2deg(alpha1)],'color','k');
-% subplot(4,2,5)
-% hold on
-% title('Mass (kg)');
-% xlim([0 time1(end)+t_prepitch(end)]);
-% plot([t_prepitch.' time1+t_prepitch(end)], [y(:,3).' m1],'color','k');
-% subplot(4,2,6)
-% hold on
-% title('Heading Angle (deg)');
-% xlim([0 time1(end)+t_prepitch(end)]);
-% plot([time1+t_prepitch(end)], [rad2deg(zeta1)],'color','k');
-% subplot(4,2,7)
-% hold on
-% title('Latitude (deg)');
-% xlim([0 time1(end)+t_prepitch(end)]);
-% plot([t_prepitch.' time1+t_prepitch(end)], [rad2deg(lat1(1)+y(:,8).') rad2deg(lat1)],'color','k');
-% 
-% % plot([primal.nodes], [rad2deg(gamma)/100],'color','k','linestyle','-');
-% % plot([primal.nodes], [v/1000],'color','k','linestyle','--');
-% % plot([primal.nodes], [V/10000],'color','k','linestyle',':');
-% % plot([primal.nodes], [rad2deg(alpha)/10],'color','k','linestyle','-.')
-% xlabel('Time (s)')
-% xlim([0,time1(end)+t_prepitch(end)]);
-
-
-
 phase = 'postpitch';
 
 interp = auxdata.interp;
-Throttle = auxdata.Throttle;
-Vehicle = auxdata.Vehicle;
+Throttle = auxdata.Stage1.Throttle;
+Vehicle = auxdata.Stage1;
 Atmosphere = auxdata.Atmosphere;
 
 [dz1,q1,xi1,vec_angle1,T1,D1,dm1] = FirstStageDynamics(output{j}.result.solution.phase(1).state',output{j}.result.solution.phase(1).control',output{j}.result.solution.phase(1).time',phase,interp,Throttle,Vehicle,Atmosphere,auxdata); % Pass primal variables into dynamics simulator
@@ -1127,20 +1035,14 @@ Atmosphere = auxdata.Atmosphere;
  fig = gcf;
 set(fig,'Position',[200 0 850 720])
 hold on
-% %suptitle('Second Stage Ascent')
 subplot(3,1,1)
 set(gca,'xticklabels',[])
 hold on
 xlim([0 time1(end)-time1(1)]);
  plot(time1-time1(1),alt1/1000,'-','color','k', 'linewidth', 1.);
-% ylim([-30,40]);
 ylabel('altitude(km)');
 addaxis(time1-time1(1),v1/1000,'--','color','k', 'linewidth', 1.);
 addaxislabel(2,'Velocity (km/s)');
-
-% addaxis(time,fpa,':','color','k', 'linewidth', 1.);
-% addaxislabel(3,'Trajectory Angle (deg)');
-
 
 addaxis(time1-time1(1),q1/1000,':','color','k', 'linewidth', 1.2);
 addaxislabel(3,'Dynamic Pressure (kPa)');
@@ -1159,20 +1061,11 @@ ylabel('Trajectory Angle (deg)');
 addaxis(time1-time1(1),rad2deg(zeta1),'--','color','k', 'linewidth', 1.);
 addaxislabel(2,'Heading Angle (deg)');
 
-% xlim([0 time1(end)-time1(1)]);
-% addaxis(time1-time1(1),rad2deg(alpha1),'-','color','k', 'linewidth', 1.);
-% % ylim([-30,40]);
-% addaxislabel(3,'Angle of Attack (deg)');
-
 
 addaxis(time1-time1(1),rad2deg(alpha1),':','color','k', 'linewidth', 1.2);
 addaxislabel(3,'Angle of Attack (deg)');
 
-% xlabel('Time (s)');
-
 legend(  'Trajectory Angle', 'Heading Angle', 'Angle of Attack', 'location', 'best');
-
-
 
 subplot(3,1,3)
 
@@ -1185,8 +1078,6 @@ ylabel('Thrust (kN)');
 addaxis(time1-time1(1),(T1-D1)./-dm1,'--','color','k', 'linewidth', 1.);
 addaxislabel(2,'Net Isp (s)');
 
-
-
 addaxis(time1-time1(1),rad2deg(vec_angle1),':','color','k', 'linewidth', 1.2);
 addaxislabel(3,'Thrust Vector Angle (deg)');
 
@@ -1194,16 +1085,9 @@ xlabel('Time (s)');
 
 legend(  'Thrust', 'Net Isp', 'Thrust Vector Angle', 'location', 'best');
 
-
-
-
-
-
-
-
-saveas(figure(111),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('FirstStage',namelist{j},'.fig')]);
+saveas(figure(111),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('FirstStage',namelist{j},'.fig')]);
 print(figure(111),strcat('FirstStage',namelist{j}),'-dpng');
-movefile(strcat('FirstStage',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('FirstStage',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 %% Plot Forward Sim Error
 figure(550)
@@ -1375,12 +1259,6 @@ W_3_pc = (W_3_atm+W_3_exo)/(Exergy_tot3)*100;
 
 W_D3 = cumtrapz(time3,v3.*D3); % work done to overcome drag
 W_D3_pc  = W_D3(end)/(Exergy_tot3)*100;
-% work to accelerate fuel mass
-% P_3 = T3.*v3;% propulsive power
-% W_P3 = cumtrapz(time3,P_3); % Propulsive work
-% P_loss3 = Exergy_tot3 - W_P3(end) ; % losses due to propulsive inefficiencies
-% P_loss3_pc  = P_loss3(end)/(Exergy_tot3)*100*100;
-
 
 W_mF3 = cumtrapz(v3,m3-m3_4-hs.mHS.*v3) + cumtrapz((alt3+6370000),(m3-m3_4-hs.mHS)*9.81.*(6370000./(alt3+6370000)).^2); % work done accelerating and lifting fuel mass (before heat shield)
 W_mF3_pc  = W_mF3(end)/(Exergy_tot3)*100;
@@ -1390,17 +1268,7 @@ HT_loss_pc =  ((H_RP1*rat_RP1)*(m3(end)-m3_4) - dExergy_3_exo -W_3_exo/(Exergy_t
 W_HS3_pc = (hs.mHS.*hs.v^2 - hs.mHS.*v3(1)^2 - (alt3(1)+6370000)*(m3_4-mpayload)*9.81.*(6370000./(altexo(end)+6370000)).^2 + (hs.alt+6370000)*(m3_4-mpayload)*9.81.*(6370000./(hs.alt+6370000)).^2)/(Exergy_tot3)*100; %work needed to accelerate and lift heat shield
 P_loss3_pc  = 100 - dExergy_3/(Exergy_tot3)*100 - W_mF3_pc - W_D3_pc - HT_loss_pc - W_HS3_pc - W_3_pc ;  % in atmosphere propulsive losses
 
-%Calculate energy wasted at each staging manoeuvre
-% stage_dEx1 = (m1(end)-auxdata.Stage2.mStruct-mFuel21(1)-auxdata.Stage3.mTot)*v1(end)^2/2 + alt1(end)*(m1(end)-auxdata.Stage2.mStruct-mFuel21(1)-auxdata.Stage3.mTot)*9.81.*(6370000./(alt1(end)+6370000)).^2;
-% stage_dEx21 = (mFuel21(end)+auxdata.Stage2.mStruct)*v21(end)^2/2 + alt21(end)*(mFuel21(end)+auxdata.Stage2.mStruct)*9.81.*(6370000./(alt21(end)+6370000)).^2;
-% stage_dEx3 = ((auxdata.Stage3.mTot - hs.mHS)*0.09)*(v3exo_coordchange+dvtot3)^2/2 + ((566890)*((auxdata.Stage3.mTot - hs.mHS)*0.09)*9.81.*(6370000./(566890+6370000)).^2) ; %heat shield is included in main dExergy
-% eff_Exergy_total = 1-(Exergy_tot1 - dExergy_1(end) + stage_dEx1 + Exergy_tot21 - dExergy_21(end) + stage_dEx21 + Exergy_tot3 - dExergy_3 + stage_dEx3)/(Exergy_tot1+Exergy_tot21+Exergy_tot3);
-% 
-% eff_Exergy_2_3 = 1-(Exergy_tot21 - dExergy_21(end) + stage_dEx21 + Exergy_tot3(end) - dExergy_3 + stage_dEx3)/(Exergy_tot21+Exergy_tot3);
-
-eff_Exergy_total = ((m3_4 - (auxdata.Stage3.mTot - hs.mHS)*0.09)*(v3exo_coordchange+dvtot3)^2/2 + (m3_4 - (auxdata.Stage3.mTot - hs.mHS)*0.09)*9.81*566890)/(Exergy_tot1+Exergy_tot21+Exergy_tot3)
-
-% eff_Exergy_2_3 = 1-(Exergy_tot21 - dExergy_21(end) + stage_dEx21 + Exergy_tot3(end) - dExergy_3 + stage_dEx3)/(Exergy_tot21+Exergy_tot3);
+eff_Exergy_total = ((m3_4 - (auxdata.Stage3.mTot - hs.mHS)*0.09)*(v3exo_coordchange+dvtot3)^2/2 + (m3_4 - (auxdata.Stage3.mTot - hs.mHS)*0.09)*9.81*566890)/(Exergy_tot1+Exergy_tot21+Exergy_tot3);
 eff_Exergy_2_3 =0;
 
 
@@ -1574,54 +1442,10 @@ end
 % if auxdata.returnMode == 1
 %     ResultsMatrix(end+1,j) = mFuel22(1);
 % end
-% movefile(strcat('LatexInputs.txt'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% movefile(strcat('LatexInputs.txt'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
-%% Bound Check
-% Peform check to see if any of the states are hitting their bounds. This
-% is an error if the bound is not intended to constrain the state. Fuel
-% mass and throttle are not checked, as these will always hit bounds. 
 
-for i = 1: length(output{j}.result.solution.phase(2).state(1,:))
-    if any(output{j}.result.solution.phase(1).state(:,i) == bounds.phase(1).state.lower(i))
-        disp(strcat('State Id: ',num2str(i),' in Phase 1 is hitting lower bound'))
-    end
-    
-    if any(output{j}.result.solution.phase(1).state(:,i) == bounds.phase(1).state.upper(i))
-        disp(strcat('State Id: ',num2str(i),' in Phase 1 is hitting upper bound'))
-    end
-end
-
-for i = 1: length(output{j}.result.solution.phase(2).state(1,:))-1
-    if any(output{j}.result.solution.phase(2).state(:,i) == bounds.phase(2).state.lower(i))
-        disp(strcat('State Id: ',num2str(i),' in Phase 2 is hitting lower bound'))
-    end
-    
-    if any(output{j}.result.solution.phase(2).state(:,i) == bounds.phase(2).state.upper(i))
-        disp(strcat('State Id: ',num2str(i),' in Phase 2 is hitting upper bound'))
-    end
-end
-
-for i = 1: length(output{j}.result.solution.phase(3).state(1,:))-2
-    if any(output{j}.result.solution.phase(3).state(:,i) == bounds.phase(3).state.lower(i))
-        disp(strcat('State Id: ',num2str(i),' in Phase 3 is hitting lower bound'))
-    end
-    
-    if any(output{j}.result.solution.phase(3).state(:,i) == bounds.phase(3).state.upper(i))
-        disp(strcat('State Id: ',num2str(i),' in Phase 3 is hitting upper bound'))
-    end
-end
-
-% Angle of attack is not checked on third stage, because angle of attack is hard constrained and should be checked manually. 
-for i = [1:3 6: length(output{j}.result.solution.phase(4).state(1,:))]
-    if any(output{j}.result.solution.phase(4).state(:,i) == bounds.phase(4).state.lower(i))
-        disp(strcat('State Id: ',num2str(i),' in Phase 4 is hitting lower bound'))
-    end
-    
-    if any(output{j}.result.solution.phase(4).state(:,i) == bounds.phase(4).state.upper(i))
-        disp(strcat('State Id: ',num2str(i),' in Phase 4 is hitting upper bound'))
-    end
-end
 
 %% Plot combined trajectory
 
@@ -1746,8 +1570,8 @@ setm(handlem('scaleruler1'), ...
     'MajorTick',0:200:400,'TickDir','down','RulerStyle','patches')
 
 % zoom(30) 
-%% Plot Visualisation of Net ISP & other performance
-plotperform = 'no'
+%% Plot Visualisation of Net ISP & other performance indicators
+plotperform = 'no';
 
 if strcmp(plotperform,'yes')
     if auxdata.returnMode == 0 && auxdata.mode == 1
@@ -1865,28 +1689,28 @@ plot(rad2deg(alpha_temp),alt_temp/1000,'o','MarkerSize',5,'MarkerEdgeColor','k',
 end
 
 
-saveas(figure(501),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('NetIsp',namelist{j},'.fig')]);
+saveas(figure(501),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('NetIsp',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(501),strcat('NetIsp',namelist{j}),'-dpng');
-movefile(strcat('NetIsp',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(503),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Thrust',namelist{j},'.fig')]);
+movefile(strcat('NetIsp',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(503),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Thrust',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(503),strcat('Thrust',namelist{j}),'-dpng');
-movefile(strcat('Thrust',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(504),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Fueldt',namelist{j},'.fig')]);
+movefile(strcat('Thrust',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(504),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Fueldt',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(504),strcat('Fueldt',namelist{j}),'-dpng');
-movefile(strcat('Fueldt',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('Fueldt',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 close(figure(501))
 close(figure(503))
 close(figure(504))
 
 
-saveas(figure(505),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Fd',namelist{j},'.fig')]);
+saveas(figure(505),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Fd',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(505),strcat('Fd',namelist{j}),'-dpng');
-movefile(strcat('Fd',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('Fd',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 close(figure(505))
 
@@ -1980,30 +1804,30 @@ end
 
 
 
-saveas(figure(506),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Isp-Mach',namelist{j},'.fig')]);
+saveas(figure(506),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Isp-Mach',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(506),strcat('Isp-Mach',namelist{j}),'-dpng');
-movefile(strcat('Isp-Mach',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('Isp-Mach',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
 
-saveas(figure(507),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('T1',namelist{j},'.fig')]);
+saveas(figure(507),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('T1',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(507),strcat('T1',namelist{j}),'-dpng');
-movefile(strcat('T1',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('T1',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
 close(figure(506))
 close(figure(507))
 
-saveas(figure(508),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('P1',namelist{j},'.fig')]);
+saveas(figure(508),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('P1',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(508),strcat('P1',namelist{j}),'-dpng');
-movefile(strcat('P1',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(509),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('M1',namelist{j},'.fig')]);
+movefile(strcat('P1',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(509),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('M1',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(509),strcat('M1',namelist{j}),'-dpng');
-movefile(strcat('M1',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('M1',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 close(figure(508))
 close(figure(509))
@@ -2077,106 +1901,106 @@ end
 
 %% SAVE FIGS
 
-saveas(figure(311),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('ThirdStage',namelist{j},'.fig')]);
+saveas(figure(311),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('ThirdStage',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(311),strcat('ThirdStage',namelist{j}),'-dpng');
-movefile(strcat('ThirdStage',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(3223),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('AoAComparison',namelist{j},'.fig')]);
+movefile(strcat('ThirdStage',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(3223),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('AoAComparison',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(3223),strcat('AoAComparison',namelist{j}),'-dpng');
-movefile(strcat('AoAComparison',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(211),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('SecondStage',namelist{j},'.fig')]);
+movefile(strcat('AoAComparison',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(211),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('SecondStage',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(211),strcat('SecondStage',namelist{j}),'-dpng');
-movefile(strcat('SecondStage',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(221),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Return',namelist{j},'.fig')]); 
+movefile(strcat('SecondStage',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(221),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Return',namelist{j},'.fig')]); 
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(221),strcat('Return',namelist{j}),'-dpng');
-movefile(strcat('Return',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(701),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('HeatFlux',namelist{j},'.fig')]); 
+movefile(strcat('Return',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(701),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('HeatFlux',namelist{j},'.fig')]); 
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(701),strcat('HeatFlux',namelist{j}),'-dpng');
-movefile(strcat('HeatFlux',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(2410),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Hamiltonian',namelist{j},'.fig')]);
+movefile(strcat('HeatFlux',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(2410),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Hamiltonian',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(2410),strcat('Hamiltonian',namelist{j}),'-dpng');
-movefile(strcat('Hamiltonian',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(2420),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Verification',namelist{j},'.fig')]);
+movefile(strcat('Hamiltonian',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(2420),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Verification',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(2420),strcat('Verification',namelist{j}),'-dpng');
-movefile(strcat('Verification',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(550),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('ForwardError',namelist{j},'.fig')]);
+movefile(strcat('Verification',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(550),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('ForwardError',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(550),strcat('ForwardError',namelist{j}),'-dpng');
-movefile(strcat('ForwardError',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(212),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Forward1',namelist{j},'.fig')]);
+movefile(strcat('ForwardError',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(212),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Forward1',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(212),strcat('Forward1',namelist{j}),'-dpng');
-movefile(strcat('Forward1',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(213),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Forward2',namelist{j},'.fig')]);
+movefile(strcat('Forward1',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(213),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Forward2',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(213),strcat('Forward2',namelist{j}),'-dpng');
-movefile(strcat('Forward2',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-% saveas(figure(2100),[sprintf('../ArchivedResults/%s',Timestamp),filesep,'eq.fig']);
-% saveas(figure(2110),[sprintf('../ArchivedResults/%s',Timestamp),filesep,'ISP.fig']);
+movefile(strcat('Forward2',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% saveas(figure(2100),[sprintf('./ArchivedResults/%s',Timestamp),filesep,'eq.fig']);
+% saveas(figure(2110),[sprintf('./ArchivedResults/%s',Timestamp),filesep,'ISP.fig']);
 if IspPlot == 1
-saveas(figure(2100),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('eq',namelist{j},'.fig')]);
+saveas(figure(2100),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('eq',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(2100),strcat('eq',namelist{j}),'-dpng');
-movefile(strcat('eq',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(2110),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Isp',namelist{j},'.fig')]);
+movefile(strcat('eq',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(2110),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Isp',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(2110),strcat('Isp',namelist{j}),'-dpng');
-movefile(strcat('Isp',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-saveas(figure(2210),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('returnIsp',namelist{j},'.fig')]);
+movefile(strcat('Isp',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+saveas(figure(2210),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('returnIsp',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(2210),strcat('returnIsp',namelist{j}),'-dpng');
-movefile(strcat('returnIsp',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('returnIsp',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 end
-saveas(figure(2301),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('GroundTrack',namelist{j},'.fig')]);
+saveas(figure(2301),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('GroundTrack',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(2301),strcat('GroundTrack',namelist{j}),'-dpng');
-movefile(strcat('GroundTrack',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-% saveas(figure(501),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('NetIsp',namelist{j},'.fig')]);
+movefile(strcat('GroundTrack',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% saveas(figure(501),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('NetIsp',namelist{j},'.fig')]);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(figure(501),strcat('NetIsp',namelist{j}),'-dpng');
-% movefile(strcat('NetIsp',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-% saveas(figure(503),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Thrust',namelist{j},'.fig')]);
+% movefile(strcat('NetIsp',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% saveas(figure(503),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Thrust',namelist{j},'.fig')]);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(figure(503),strcat('Thrust',namelist{j}),'-dpng');
-% movefile(strcat('Thrust',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-% saveas(figure(504),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Fueldt',namelist{j},'.fig')]);
+% movefile(strcat('Thrust',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% saveas(figure(504),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Fueldt',namelist{j},'.fig')]);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(figure(504),strcat('Fueldt',namelist{j}),'-dpng');
-% movefile(strcat('Fueldt',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-% saveas(figure(505),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Fd',namelist{j},'.fig')]);
+% movefile(strcat('Fueldt',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% saveas(figure(505),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Fd',namelist{j},'.fig')]);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(figure(505),strcat('Fd',namelist{j}),'-dpng');
-% movefile(strcat('Fd',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-% saveas(figure(506),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Isp-Mach',namelist{j},'.fig')]);
+% movefile(strcat('Fd',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% saveas(figure(506),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('Isp-Mach',namelist{j},'.fig')]);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(figure(506),strcat('Isp-Mach',namelist{j}),'-dpng');
-% movefile(strcat('Isp-Mach',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% movefile(strcat('Isp-Mach',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 % 
-% saveas(figure(507),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('T1',namelist{j},'.fig')]);
+% saveas(figure(507),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('T1',namelist{j},'.fig')]);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(figure(507),strcat('T1',namelist{j}),'-dpng');
-% movefile(strcat('T1',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-% saveas(figure(508),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('P1',namelist{j},'.fig')]);
+% movefile(strcat('T1',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% saveas(figure(508),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('P1',namelist{j},'.fig')]);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(figure(508),strcat('P1',namelist{j}),'-dpng');
-% movefile(strcat('P1',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
-% saveas(figure(509),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('M1',namelist{j},'.fig')]);
+% movefile(strcat('P1',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% saveas(figure(509),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('M1',namelist{j},'.fig')]);
 % set(gcf, 'PaperPositionMode', 'auto');
 % print(figure(509),strcat('M1',namelist{j}),'-dpng');
-% movefile(strcat('M1',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+% movefile(strcat('M1',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
-saveas(figure(502),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('NetIspPullup',namelist{j},'.fig')]);
+saveas(figure(502),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('NetIspPullup',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(502),strcat('NetIspPullup',namelist{j}),'-dpng');
-movefile(strcat('NetIspPullup',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('NetIspPullup',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
 close all
@@ -2210,10 +2034,10 @@ xlabel('Time (s)');
 ylabel('Overpressure (Pa)')
 title('Sonic Boom Ground Effects')
 
-saveas(figure(1022),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('OverPressure',namelist{j},'.fig')]);
+saveas(figure(1022),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,strcat('OverPressure',namelist{j},'.fig')]);
 set(gcf, 'PaperPositionMode', 'auto');
 print(figure(1022),strcat('OverPressure',namelist{j}),'-dpng');
-movefile(strcat('OverPressure',namelist{j},'.png'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('OverPressure',namelist{j},'.png'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 end
 end
@@ -2581,7 +2405,7 @@ dlmwrite(strcat('LatexInputs.txt'),'\\', '-append' , 'delimiter','','newline', '
 	
 dlmwrite(strcat('LatexInputs.txt'),'\end{tabular} ', '-append' , 'delimiter','','newline', 'pc')
 
-movefile(strcat('LatexInputs.txt'),sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile(strcat('LatexInputs.txt'),sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
 
@@ -2864,27 +2688,7 @@ set(gca,'xticklabels',[])
     plot([time21-time21(1)],rad2deg(alpha21),'Color',Colours(j,:),'LineStyle',LineStyleList{j})
 xlabel('Time (s)');
     
-    
-%     xlim([time21(1) timeexo(end)+time21(end)])
 
-% subplot(3,2,4)
-%     hold on
-%     title('Dynamic Pressure Difference (kPa)','FontSize',9);
-%     plot(0:1/(length(time21)-1):1, (q21'-interp1(0:1/(length(time21nom)-1):1,q21nom,0:1/(length(time21)-1):1))/1000','Color',Colours(j,:),'LineStyle',LineStyleList{j})
-% set(gca,'xticklabels',[])
-
-
-
-
-
-% set(gca,'xticklabels',[])
-
-
-% subplot(3,2,6)
-%     hold on
-%     title('Velocity Difference (m/s)','FontSize',9);
-%     plot(0:1/(length(time21)-1):1, (v21'-interp1(0:1/(length(time21nom)-1):1,v21nom,0:1/(length(time21)-1):1))','Color',Colours(j,:),'LineStyle',LineStyleList{j})
-% set(gca,'xticklabels',[])
 
 
         figure(2210)
@@ -2893,16 +2697,7 @@ xlabel('Time (s)');
     title('Altitude (km','FontSize',9);
     plot([time22-time22(1)], [alt22]/1000','Color',Colours(j,:),'LineStyle',LineStyleList{j})
 set(gca,'xticklabels',[])
-%     xlim([time3(1) timeexo(end)+time3(end)])
 
-% subplot(4,2,2)
-%     hold on
-%     title('Altitude Difference (km)','FontSize',9);
-
- 
-%     plot(time22-time22(1), (alt22'-interp1(time22nom,alt22nom,time22)')/1000,'Color',Colours(j,:),'LineStyle',LineStyleList{j})
-% set(gca,'xticklabels',[])
-%     xlim([time3(1) timeexo(end)+time3(end)])
 
 
     subplot(4,1,2)
@@ -2910,31 +2705,12 @@ set(gca,'xticklabels',[])
     title('Dynamic Pressure (kPa','FontSize',9);
     plot([time22-time22(1)],[q22]/1000,'Color',Colours(j,:),'LineStyle',LineStyleList{j})
 set(gca,'xticklabels',[])
-%     xlim([time22(1) timeexo(end)+time22(end)])
 
-% subplot(4,2,4)
-%     hold on
-%     title('Dynamic Pressure Difference (kPa)','FontSize',9);
-%     plot(time22-time22(1), (q22'-interp1(time22nom,q22nom,time22)')/1000,'Color',Colours(j,:),'LineStyle',LineStyleList{j})
-% set(gca,'xticklabels',[])
-
-
-%     xlim([time22(1) timeexo(end)+time22(end)])
     subplot(4,1,3)
     hold on
     title('Velocity (m/s)','FontSize',9);
     plot([time22-time22(1)],[v22],'Color',Colours(j,:),'LineStyle',LineStyleList{j})
 set(gca,'xticklabels',[])
-
-% xlabel('Time (s)','FontSize',9);
-
-% subplot(4,2,6)
-%     hold on
-%     title('Velocity Difference (m/s)','FontSize',9);
-%     plot(time22-time22(1), (v22'-interp1(time22nom,v22nom,time22)'),'Color',Colours(j,:),'LineStyle',LineStyleList{j})
-% set(gca,'xticklabels',[])
-
-% xlabel('Normalised Time','FontSize',9);
 
 
 subplot(4,1,4)
@@ -2952,18 +2728,18 @@ subplot(4,1,4)
     figure(3110)
     legend(namelist)
     
-saveas(figure(2110),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,'SecondStageComparison.fig']);
+saveas(figure(2110),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,'SecondStageComparison.fig']);
 print(figure(2110),'SecondStageComparison','-dpng');
-movefile('SecondStageComparison.png',sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile('SecondStageComparison.png',sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
-saveas(figure(2210),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,'ReturnComparison.fig']);
+saveas(figure(2210),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,'ReturnComparison.fig']);
 print(figure(2210),'ReturnComparison','-dpng');
-movefile('ReturnComparison.png',sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile('ReturnComparison.png',sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
-saveas(figure(3110),[sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,'ThirdStageComparison.fig']);
+saveas(figure(3110),[sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))),filesep,'ThirdStageComparison.fig']);
 print(figure(3110),'ThirdStageComparison','-dpng');
-movefile('ThirdStageComparison.png',sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile('ThirdStageComparison.png',sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 
 end
@@ -3028,7 +2804,7 @@ axis([0 1 1 4]);
 end
 grid on;
 print -dpng MeshHistory.png
-movefile('MeshHistory.png',sprintf('../ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
+movefile('MeshHistory.png',sprintf('./ArchivedResults/%s',strcat(Timestamp,'mode',num2str(mode),num2str(returnMode))));
 
 end
 end
