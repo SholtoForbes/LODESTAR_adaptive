@@ -330,33 +330,41 @@ tfMax1 	    = 300;     % large upper bound; do not choose Inf
 
 disp('|                *  Setting-Up First Stage States  *                |')
 
+% Define Time Bounds
 bounds.phase(1).initialtime.lower = 0; % constrain initial time to 0
 bounds.phase(1).initialtime.upper = 0;
 
 bounds.phase(1).finaltime.lower = 0;
 bounds.phase(1).finaltime.upper = tfMax1;
 
-auxdata.States_ID1 = ['Altitude','Velocity','Mass','FPA','AoA','Heading','AoAdt','Latitude','Longitude']; % Designate State Names
+ % Designate State Names
+auxdata.States_ID1 = {'Altitude','Velocity','Mass','FPA','AoA','Heading','AoAdt','Latitude','Longitude'};
 
+% Define Initial State Bounds
 bounds.phase(1).initialstate.lower = [h0, v0,  mF, gamma0, alpha0,  zetaMin, dalphadt2Min1, lat0, lon0 ];
 bounds.phase(1).initialstate.upper = [h0, v0, mMax1, gamma0, alpha0, zetaMax, dalphadt2Max1, lat0, lon0];
 
+% Define Continuous State Bounds
 bounds.phase(1).state.lower = [AltMin1, vMin1, mF, gammaMin1, alphaMin1, zetaMin, dalphadt2Min1, latMin, lonMin ];
 bounds.phase(1).state.upper = [ AltMax1,  vMax1, mMax1, gammaMax1, alphaMax1, zetaMax, dalphadt2Max1, latMax, lonMax];
 
+% Define FInal State Bounds
 bounds.phase(1).finalstate.lower = [AltMin1, vMin1, mF, gammaMin1, alphaMin1, zetaMin, dalphadt2Min1, latMin, lonMin ];
 bounds.phase(1).finalstate.upper = [ AltMax1,  vMax1, mMax1, gammaMax1, alphaMax1, zetaMax, dalphadt2Max1, latMax, lonMax];
 
+% Define Control Bounds
 bounds.phase(1).control.lower = uMin1;
 bounds.phase(1).control.upper = uMax1;
 
+% Define Path Bounds (Path bounds values are calculated in Continuous.m)
 bounds.phase(1).path.lower = 0;
 bounds.phase(1).path.upper = Stage2.maxq; % set maximum dynamic pressure 
 
-% Tie stages together
+% Define Event Constraints (Events are calculated in Endpoints.m)
 bounds.eventgroup(1).lower = [zeros(1,8)];
 bounds.eventgroup(1).upper = [zeros(1,8)]; 
 
+% Define Guesses
 guess.phase(1).time =  [0; tfMax1];
 
 guess.phase(1).state(:,1) = [h0; h0];
@@ -375,9 +383,6 @@ guess.phase(1).state(:,8) = [lat0; lat0];
 guess.phase(1).state(:,9) = [lon0; lon0];
 
 guess.phase(1).control = [0; 0];
-
-
-
 
 
 
@@ -711,58 +716,58 @@ clear aero5
 clear Viscousaero_EngineOn
 clear Viscousaero_EngineOff
 
-%% Import Bounds %%========================================================
+%% Set Up Second Stage Bounds ---------------------------------------------
 
 disp('|                * Setting-Up Second Stage States *                 |')
 
-aoaMin21 = 0;  aoaMax21 = 10*pi/180;
+% Set State Bounds for Second Stage Scramjet (Those that are not not universal bounds)
 
-bankMin21 = -90*pi/180; 
+aoaMin21 = 0;  aoaMax21 = 10*pi/180; % This is a physical bound, to limit the vehicle between 0-10 degrees angle of attack. AoA limits must be within the bounds of the aerodynamic data available. 
+
+bankMin21 = -90*pi/180; % Banking is a physical constraint on the system. 
 bankMax21 =   90*pi/180; 
 
 AltMin21 = 1;
-AltMax21 = MaxviscAlt21;
+AltMax21 = MaxviscAlt21; % Altitude is bounded to the maximum altitude available from the viscous aerodynamic database, and should be within the bounds of this database to ensure extrapolation does not occur. 
 
-vMin21 = 1000;
+vMin21 = 1000; % Velocity is constrained to encompass the reasonable velocity range of the vehicle. 
 vMax21 = 3000;
 
-mFuelMin21 = 0;
+mFuelMin21 = 0; % Fuel mass is constrained to the physical limits of fuel within the vehicle. 
 mFuelMax21 = Stage2.mFuel;
 
-gammaMin21 = -0.5;
+gammaMin21 = -0.5; % The flight path angle is constrained to encompass the reeasonable flight path angle range of the vehicle. 
 gammaMax21 = deg2rad(15);
 
-% Primal Bounds
-auxdata.States_ID21 = ['Altitude', 'Longitude', 'Latitude','Velocity','FPA','AoA','Heading','AoAdt','Latitude','Longitude']; % Designate State Names
 
+% Designate State Names
+auxdata.States_ID21 = {'Altitude', 'Longitude', 'Latitude','Velocity','FPA','Heading','AoA', 'Bank Angle','Fuel Mass'}; 
+
+% Define Continuous State Bounds
 bounds.phase(2).state.lower = [AltMin21, lonMin, latMin, vMin21, gammaMin21, zetaMin, aoaMin21, bankMin21, mFuelMin21];
-bounds.phase(2).state.upper = [AltMax21, lonMax, latMax, vMax21, deg2rad(15), zetaMax, aoaMax21, bankMax21, mFuelMax21];
+bounds.phase(2).state.upper = [AltMax21, lonMax, latMax, vMax21, gammaMax21, zetaMax, aoaMax21, bankMax21, mFuelMax21];
 
-% Initial States
+% Define Initial State Bounds
 bounds.phase(2).initialstate.lower = [AltMin21,lonMin, latMin, vMin21, gammaMin21, zetaMin, aoaMin21, 0, mFuelMin21] ; % initial bank angle at separation is 0
-bounds.phase(2).initialstate.upper = [AltMax21,lonMax, latMax, vMax21, deg2rad(15), zetaMax, aoaMax21, 0, mFuelMax21];
+bounds.phase(2).initialstate.upper = [AltMax21,lonMax, latMax, vMax21, gammaMax21, zetaMax, aoaMax21, 0, mFuelMax21];
 
-% End States
-% End bounds are set slightly differently, to encourage an optimal solution
+% Define End StateBounds
+% End bounds are set slightly differently to the continuous states, even when not being constrained to a particular value, to encourage an optimal solution
 bounds.phase(2).finalstate.lower = [AltMin21, lonMin, latMin, vMin21, 0, zetaMin, aoaMin21, 0, mFuelMin21]; % limit trajectory angle to minimum of 0 at SPARTAN-third stage separation
 bounds.phase(2).finalstate.upper = [AltMax21, lonMax, latMax, vMax21, gammaMax21, zetaMax, aoaMax21, 0, mFuelMax21];
  
 
-% Control Bounds
-bounds.phase(2).control.lower = [deg2rad(-.5), deg2rad(-1)];
+% Define Control Bounds
+bounds.phase(2).control.lower = [deg2rad(-.5), deg2rad(-1)]; % Define the maximum angle of attack and bank angle change rates. These have been approximated to be physically realistic values. 
 bounds.phase(2).control.upper = [deg2rad(.5), deg2rad(1)];
 
-% Time Bounds
+% Set Time Bounds
 bounds.phase(2).initialtime.lower = 0;
 bounds.phase(2).initialtime.upper = 1000; % much longer time than it should fly for
 bounds.phase(2).finaltime.lower = 100; % makes sure that time progresses forward
 bounds.phase(2).finaltime.upper = 1000;
 
-
-%% Define Path Constraints
-% Path bounds, defined in Continuous function.
-% These limit the dynamic pressure.
-
+% Define Path Bounds (Path bounds values are calculated in Continuous.m)
 bounds.phase(2).path.lower = [0];
 bounds.phase(2).path.upper = Stage2.maxq;
 
@@ -774,19 +779,14 @@ end
 % Set the initial guess. This can have a significant effect on the final
 % solution, even for a well defined problem. 
 
-% guess.phase(2).state(:,1)   = [24000;35000];
-
+% Define initial guess for start and end pt of each state. These have been
+% chosen to
+guess.phase(2).state(:,1)   = [24000;35000];
 guess.phase(2).state(:,2)   = [lon0;lon0];
 guess.phase(2).state(:,3)   = [lat0;lat0+0.2]; 
-
-
 guess.phase(2).state(:,4)   = [1500; 2900];
 guess.phase(2).state(:,5)   = [0.0; deg2rad(3)];
-
-
 guess.phase(2).state(:,6)   = [pi;pi];
-
-
 guess.phase(2).state(:,7)   = [2*pi/180; 5*pi/180];
 guess.phase(2).state(:,8)   = [deg2rad(10);deg2rad(10)];
 guess.phase(2).state(:,9) 	= [Stage2.mFuel; 100];
@@ -829,6 +829,8 @@ bounds.phase(3).finaltime.upper = 4000;
 bounds.phase(3).initialstate.upper = [AltMax22, lonMax, latMax, vMax22, gammaMax22, zetaMax, aoaMax21, 0, mFuelMax, throttleMax];   
 
 % State Bounds
+auxdata.States_ID22 = {'Altitude', 'Longitude', 'Latitude','Velocity','FPA','Heading','AoA', 'Bank Angle','Fuel Mass','Throttle'}; % Designate State Names
+
 if returnMode == 0
 bounds.phase(3).state.lower = [AltMin22, lonMin, latMin, vMin22, gammaMin22, zetaMin, aoaMin21, bankMin21, mFuelMin, throttleMin];
 bounds.phase(3).state.upper = [AltMax22, lonMax, latMax, vMax22, gammaMax22, zetaMax, aoaMax21, bankMax21, 1, throttleMax];
@@ -854,7 +856,7 @@ bounds.phase(3).control.lower = [deg2rad(-.5), deg2rad(-1), -.2];
 bounds.phase(3).control.upper = [deg2rad(.5), deg2rad(1), .2];
 end
 
-% Path Bounds
+% Define Path Bounds (Path bounds values are calculated in Continuous.m)
 bounds.phase(3).path.lower = 0;
 bounds.phase(3).path.upper = 50000;
 
@@ -938,28 +940,36 @@ aoadotMax3 = deg2rad(1);
 %-------------------------------------------------------------------%
 %--------------- Set Up Problem Using Data Provided Above ----------%
 %-------------------------------------------------------------------%
+% Set Time Bounds
 bounds.phase(4).initialtime.lower = 0;
 bounds.phase(4).initialtime.upper = 10000;
 bounds.phase(4).finaltime.lower = 1;
 bounds.phase(4).finaltime.upper = 10000;
 
+% Designate State Names
+auxdata.States_ID3 = {'Altitude','Velocity','FPA', 'Mass', 'Aoa', 'Latitude','Heading'}; 
 
+% Define Initial State Bounds
 bounds.phase(4).initialstate.lower = [altMin3,vMin3, 0,  auxdata.Stage3.mTot, aoaMin3, phiMin3, zetaMin3];
 bounds.phase(4).initialstate.upper = [altMax3, vMax3, gammaMax3, auxdata.Stage3.mTot, aoaMax3, phiMax3, zetaMax3];
 
+% Define Continuous State Bounds
 bounds.phase(4).state.lower = [altMin3,vMin3, gammaMin3, 0, aoaMin3, phiMin3, zetaMin3];
 bounds.phase(4).state.upper = [altMax3, vMax3, gammaMax3, auxdata.Stage3.mTot, aoaMax3, phiMax3, zetaMax3];
 
+% Define Final State Bounds
 bounds.phase(4).finalstate.lower = [altMin3, vMin3, 0, 0, 0, phiMin3, zetaMin3];
 bounds.phase(4).finalstate.upper = [altMax3, vMax3, gammaMax3, auxdata.Stage3.mTot, 0, phiMax3, zetaMax3];
 
+% Define Control Bounds
 bounds.phase(4).control.lower = [aoadotMin3];
 bounds.phase(4).control.upper = [aoadotMax3];
 
+% Define Path Bounds (Path bounds values are calculated in Continuous.m)
 bounds.phase(4).path.lower = [-deg2rad(8), -inf];
 bounds.phase(4).path.upper = [deg2rad(8), 0];
 
-
+% Define Event Bounds
 bounds.eventgroup(4).lower = [zeros(1,7) 90000 0];
 bounds.eventgroup(4).upper = [zeros(1,6) 1000 566000 0];
 
@@ -1039,7 +1049,7 @@ setup.derivatives.dependencies      = 'full';
 %% Parallel Loop
 disp('|                * Setting-Up GPOPS-2 in Parallel *                 |')
 
-num_it = 4; % Define number of parallel iterations
+num_it = 3; % Define number of parallel iterations
 
 % Create variable setup structure
 %% for interaction testing
@@ -1256,7 +1266,7 @@ end
 parfor i = 1:num_it
     
 disp(strcat('|                * Initialising GPOPS-2 on Core_',' ', num2str(i),' *                 |'))
-
+disp(strcat('|                Working...                                                           |'))
 
 
 output_temp = gpops2(setup_par(i)); % Run GPOPS-2. Use setup for each parallel iteration.

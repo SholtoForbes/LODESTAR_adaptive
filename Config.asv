@@ -35,7 +35,7 @@ clc
 mode = 1;
 auxdata.mode = mode;
 
-returnMode = 1;% Flag for setting the fly-back of the SPARTAN. 0 = not constrained (no fly-back), 1 = constrained (fly-back)
+returnMode = 1;% Flag for setting the fly-back of the SPARTAN. 0 = not constrained (no fly-back), 1 = constrained (return)
 auxdata.returnMode = returnMode;
 
 %% Mission Definition
@@ -132,6 +132,10 @@ Stage3.Eff = 0.98; % efficiency reduction due to mass flow rate increase.
 
 % Reference Area
 Stage3.Aref = 0.95; % diameter of 1.1m
+
+
+
+
 
 
 %% Add LODESTAR Folder to Path
