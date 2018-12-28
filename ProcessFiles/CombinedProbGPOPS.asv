@@ -197,12 +197,6 @@ auxdata.namelist = namelist;
 auxdata.delta = deg2rad(0); % thrust vector angle 
 
 
-%% Launch Point
-
-lat0 = Mission.lat0; % Equatorial Launch Australia Spaceport near Nhulunbuy
-lon0 = Mission.lon0;
-
-
 %% Atmosphere Data %%======================================================
 % Fetch atmospheric data and compute interpolation splines.
 disp('|                 *  Importing Atmosphere Data    *                 |')
@@ -221,11 +215,13 @@ auxdata.interp.P0_spline = spline( interp.Atmosphere(:,1),  interp.Atmosphere(:,
 
 
 
-%%
+%% Import and Define Parameters
+lat0 = Mission.lat0; % Import initial launch location (Also location of SPARTAN landing)
+lon0 = Mission.lon0;
+
 auxdata.Re   = 6371203.92;                     % Equatorial Radius of Earth (m)
 
-
-auxdata.A = Stage2.refA ; 
+auxdata.A = Stage2.refA ; % SPARTAN reference area
 
 
 
@@ -780,7 +776,8 @@ end
 % solution, even for a well defined problem. 
 
 % Define initial guess for start and end pt of each state. These have been
-% chosen to
+% chosen to give a very rough approximation of the beginning and end
+% states of the solution. 
 guess.phase(2).state(:,1)   = [24000;35000];
 guess.phase(2).state(:,2)   = [lon0;lon0];
 guess.phase(2).state(:,3)   = [lat0;lat0+0.2]; 
@@ -901,7 +898,7 @@ guess.phase(3).time    = tGuess;
 disp('|            * Importing Third Stage Aerodynamic Data *             |')
 
 
-
+% Import aerodynamic coefficients from file
 auxdata.Aero3 = dlmread('ThirdStageAeroCoeffs.txt');
 
 Aero3 = auxdata.Aero3;
